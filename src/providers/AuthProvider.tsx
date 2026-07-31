@@ -20,7 +20,8 @@ interface AuthContextValue {
   signUpWithPassword: (
     email: string,
     password: string,
-    fullName: string
+    fullName: string,
+    companyName: string
   ) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: string | null }>;
@@ -59,11 +60,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signUpWithPassword = useCallback(
-    async (email: string, password: string, fullName: string) => {
+    async (email: string, password: string, fullName: string, companyName: string) => {
       const { error } = await supabase.auth.signUp({
         email,
         password,
-        options: { data: { full_name: fullName } },
+        options: { data: { full_name: fullName, company_name: companyName } },
       });
       return { error: error?.message ?? null };
     },

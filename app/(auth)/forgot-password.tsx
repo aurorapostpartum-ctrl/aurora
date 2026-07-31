@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
-import { AuthContainer, Button, Text, TextField } from '../../src/components/ui';
+import { AnimatedBackground, AuthContainer, Button, Text, TextField } from '../../src/components/ui';
 import { useAuth } from '../../src/providers/AuthProvider';
 import { isValidEmail } from '../../src/lib/validation';
 import { colors, spacing } from '../../src/theme';
@@ -49,6 +49,7 @@ export default function ForgotPasswordScreen() {
   if (sent) {
     return (
       <View style={styles.confirmWrap}>
+        <AnimatedBackground />
         <View style={styles.confirmInner}>
           <Animated.View entering={FadeInDown.duration(420).springify()} style={styles.confirmIcon}>
             <Ionicons name="paper-plane-outline" size={30} color={colors.accent} />
@@ -76,7 +77,7 @@ export default function ForgotPasswordScreen() {
   }
 
   return (
-    <AuthContainer>
+    <AuthContainer background={<AnimatedBackground />}>
       <Animated.View entering={FadeInDown.duration(420).delay(40)}>
         <Text
           variant="footnote"

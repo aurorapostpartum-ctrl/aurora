@@ -3,18 +3,23 @@ import { StyleSheet, View } from 'react-native';
 import { colors, radius, spacing } from '../../theme';
 import { Text } from './Text';
 
-export function Wordmark({ compact = false }: { compact?: boolean }) {
+export interface WordmarkProps {
+  compact?: boolean;
+  stacked?: boolean;
+}
+
+export function Wordmark({ compact = false, stacked = false }: WordmarkProps) {
   return (
-    <View style={styles.row}>
-      <View style={[styles.mark, compact && styles.markCompact]}>
-        <Text variant={compact ? 'headline' : 'title2'} color={colors.textPrimary}>
+    <View style={[styles.row, stacked && styles.column]}>
+      <View style={[styles.mark, compact && styles.markCompact, stacked && styles.markHero]}>
+        <Text variant={compact ? 'headline' : 'title1'} color={colors.textPrimary}>
           C
         </Text>
       </View>
       {!compact ? (
-        <View style={styles.textBlock}>
+        <View style={[styles.textBlock, stacked && styles.textBlockStacked]}>
           <Text variant="headline">CodeBook Canada</Text>
-          <Text variant="caption1" color={colors.accent}>
+          <Text variant="caption1" color={colors.accent} style={stacked && styles.proStacked}>
             PRO
           </Text>
         </View>
@@ -26,6 +31,10 @@ export function Wordmark({ compact = false }: { compact?: boolean }) {
 const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
+    alignItems: 'center',
+  },
+  column: {
+    flexDirection: 'column',
     alignItems: 'center',
   },
   mark: {
@@ -46,7 +55,22 @@ const styles = StyleSheet.create({
     height: 34,
     borderRadius: radius.sm,
   },
+  markHero: {
+    width: 68,
+    height: 68,
+    borderRadius: radius.lg,
+    shadowOpacity: 0.5,
+    shadowRadius: 28,
+  },
   textBlock: {
     marginLeft: spacing.sm,
+  },
+  textBlockStacked: {
+    marginLeft: 0,
+    marginTop: spacing.sm,
+    alignItems: 'center',
+  },
+  proStacked: {
+    textAlign: 'center',
   },
 });

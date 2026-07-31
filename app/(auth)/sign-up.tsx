@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import {
+  AnimatedBackground,
   AuthContainer,
   Button,
   PasswordVisibilityToggle,
@@ -16,11 +17,14 @@ import { useAuth } from '../../src/providers/AuthProvider';
 import { colors, spacing } from '../../src/theme';
 import { isValidEmail, isValidPassword } from '../../src/lib/validation';
 
-type FormErrors = Partial<Record<'fullName' | 'email' | 'password' | 'confirmPassword', string>>;
+type FormErrors = Partial<
+  Record<'companyName' | 'fullName' | 'email' | 'password' | 'confirmPassword', string>
+>;
 
 export default function SignUpScreen() {
   const { signUpWithPassword } = useAuth();
 
+  const [companyName, setCompanyName] = useState('');
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -37,6 +41,7 @@ export default function SignUpScreen() {
 
   const handleSubmit = async () => {
     const nextErrors: FormErrors = {};
+    if (companyName.trim().length < 2) nextErrors.companyName = 'Enter your company name';
     if (fullName.trim().length < 2) nextErrors.fullName = 'Enter your full name';
     if (!isValidEmail(email)) nextErrors.email = 'Enter a valid email address';
     if (!isValidPassword(password)) nextErrors.password = 'Use at least 8 characters';
@@ -53,7 +58,12 @@ export default function SignUpScreen() {
     }
 
     setSubmitting(true);
-    const { error } = await signUpWithPassword(email.trim(), password, fullName.trim());
+    const { error } = await signUpWithPassword(
+      email.trim(),
+      password,
+      fullName.trim(),
+      companyName.trim()
+    );
     setSubmitting(false);
 
     if (error) {
@@ -73,6 +83,7 @@ export default function SignUpScreen() {
   if (submitted) {
     return (
       <View style={styles.confirmWrap}>
+        <AnimatedBackground />
         <View style={styles.confirmInner}>
           <Animated.View entering={FadeInDown.duration(420).springify()} style={styles.confirmIcon}>
             <Ionicons name="mail-outline" size={32} color={colors.accent} />
@@ -99,7 +110,7 @@ export default function SignUpScreen() {
   }
 
   return (
-    <AuthContainer>
+    <AuthContainer background={<AnimatedBackground />}>
       <Animated.View entering={FadeInDown.duration(420).delay(40)}>
         <Text
           variant="footnote"
@@ -110,14 +121,28 @@ export default function SignUpScreen() {
           ← Back
         </Text>
         <Text variant="largeTitle" style={styles.title}>
-          Create account
+          Create your company
         </Text>
         <Text variant="body" color={colors.textSecondary} style={styles.subtitle}>
-          Set up your CodeBook Canada Pro workspace
+          Start your CodeBook Canada Pro workspace in minutes
         </Text>
       </Animated.View>
 
       <Animated.View entering={FadeInDown.duration(420).delay(120)} style={styles.form}>
+        <TextField
+          label="Company name"
+          placeholder="Acme Inc."
+          autoCapitalize="words"
+          autoComplete="organization"
+          textContentType="organizationName"
+          value={companyName}
+          onChangeText={(t) => {
+            setCompanyName(t);
+            clearFieldError('companyName');
+          }}
+          error={fieldErrors.companyName}
+          returnKeyType="next"
+        />
         <TextField
           label="Full name"
           placeholder="Jordan Smith"
@@ -192,7 +217,7 @@ export default function SignUpScreen() {
         ) : null}
 
         <View style={styles.submitButton}>
-          <Button label="Create Account" onPress={handleSubmit} loading={submitting} />
+          <Button label="Create Company" onPress={handleSubmit} loading={submitting} />
         </View>
 
         <Text variant="caption1" color={colors.textTertiary} style={styles.terms}>

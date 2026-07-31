@@ -9,3 +9,5 @@ export { ErrorState } from './ErrorState';
 export { Screen } from './Screen';
 export { Wordmark } from './Wordmark';
 export { AuthContainer } from './AuthContainer';
+export { AnimatedBackground } from './AnimatedBackground';
+export { Checkbox } from './Checkbox';

@@ -46,7 +46,7 @@ export function GlassCard({
           { borderRadius },
         ]}
       />
-      <View style={styles.content}>{children}</View>
+      <View>{children}</View>
     </View>
   );
 }
@@ -70,9 +70,5 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.35,
     shadowRadius: 24,
     elevation: 8,
-  },
-  content: {
-    borderRadius: radius.md,
-    overflow: 'hidden',
   },
 });

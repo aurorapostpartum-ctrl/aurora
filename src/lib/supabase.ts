@@ -1,8 +1,8 @@
 import 'react-native-url-polyfill/auto';
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
-import { Platform } from 'react-native';
+
+import { storage } from './storage';
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
@@ -16,27 +16,12 @@ if (!isSupabaseConfigured) {
   );
 }
 
-// expo-router's static web export renders the app in Node (no `window`/`localStorage`),
-// so the storage adapter must no-op there instead of using AsyncStorage's browser-only shim.
-const webStorage = {
-  getItem: (key: string) =>
-    Promise.resolve(typeof localStorage === 'undefined' ? null : localStorage.getItem(key)),
-  setItem: (key: string, value: string) => {
-    if (typeof localStorage !== 'undefined') localStorage.setItem(key, value);
-    return Promise.resolve();
-  },
-  removeItem: (key: string) => {
-    if (typeof localStorage !== 'undefined') localStorage.removeItem(key);
-    return Promise.resolve();
-  },
-};
-
 export const supabase = createClient(
   supabaseUrl ?? 'https://placeholder.supabase.co',
   supabaseAnonKey ?? 'placeholder-anon-key',
   {
     auth: {
-      storage: Platform.OS === 'web' ? webStorage : AsyncStorage,
+      storage,
       autoRefreshToken: true,
       persistSession: true,
       detectSessionInUrl: false,
