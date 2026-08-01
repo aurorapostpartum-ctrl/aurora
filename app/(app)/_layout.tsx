@@ -18,6 +18,13 @@ export default function AppLayout() {
           presentation: 'fullScreenModal',
         }}
       />
+      <Stack.Screen
+        name="search"
+        options={{
+          animation: 'slide_from_bottom',
+          presentation: 'fullScreenModal',
+        }}
+      />
     </Stack>
   );
 }

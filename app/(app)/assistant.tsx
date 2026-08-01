@@ -57,7 +57,13 @@ export default function AssistantScreen() {
     <View style={styles.root}>
       <SafeAreaView style={styles.flex} edges={['top', 'bottom', 'left', 'right']}>
         <View style={styles.header}>
-          <Pressable onPress={() => router.back()} hitSlop={8} style={styles.headerButton}>
+          <Pressable
+            onPress={() => router.back()}
+            hitSlop={8}
+            style={styles.headerButton}
+            accessibilityRole="button"
+            accessibilityLabel="Close assistant"
+          >
             <Ionicons name="chevron-down" size={22} color={colors.textSecondary} />
           </Pressable>
           <View style={styles.headerTitle}>

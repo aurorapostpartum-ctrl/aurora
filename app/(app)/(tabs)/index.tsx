@@ -33,6 +33,17 @@ export default function DashboardScreen() {
     setToastMessage(`${title} is coming soon`);
   }, []);
 
+  const handleActionPress = useCallback(
+    (cardId: string, title: string) => {
+      if (cardId === 'search-codes') {
+        router.push('/search');
+        return;
+      }
+      showComingSoon(title);
+    },
+    [showComingSoon]
+  );
+
   return (
     <Screen edges={['top', 'left', 'right']}>
       <ScrollView
@@ -74,7 +85,7 @@ export default function DashboardScreen() {
               <ActionCard
                 key={card.id}
                 config={card}
-                onPress={() => showComingSoon(card.title)}
+                onPress={() => handleActionPress(card.id, card.title)}
               />
             ))}
           </Animated.View>
