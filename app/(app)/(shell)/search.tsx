@@ -3,7 +3,7 @@ import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
-import { Avatar, EmptyState, Screen, StatusBadge, Text, TextField } from '../../../src/components/ui';
+import { Avatar, EmptyState, StatusBadge, Text, TextField } from '../../../src/components/ui';
 import {
   DEFICIENCIES,
   DOCUMENTS,
@@ -13,8 +13,9 @@ import {
   PEOPLE,
 } from '../../../src/data/company';
 import { getJob } from '../../../src/data/selectors';
+import { RoleGate } from '../../../src/navigation/RoleGate';
 import { useAuth } from '../../../src/providers/AuthProvider';
-import { colors, radius, spacing, TAB_BAR_HEIGHT } from '../../../src/theme';
+import { colors, radius, spacing } from '../../../src/theme';
 
 type ResultKind = 'job' | 'document' | 'checklist' | 'hazard' | 'deficiency' | 'person';
 
@@ -37,6 +38,14 @@ const KIND_META: Record<ResultKind, { icon: keyof typeof Ionicons.glyphMap; labe
 };
 
 export default function SearchScreen() {
+  return (
+    <RoleGate allow={['manager', 'employee']}>
+      <SearchContent />
+    </RoleGate>
+  );
+}
+
+function SearchContent() {
   const { person } = useAuth();
   const [query, setQuery] = useState('');
 
@@ -140,7 +149,7 @@ export default function SearchScreen() {
   };
 
   return (
-    <Screen glow={false}>
+    <View style={styles.root}>
       <View style={styles.header}>
         <Text variant="largeTitle" style={styles.title}>
           Search
@@ -164,7 +173,7 @@ export default function SearchScreen() {
       </View>
 
       <ScrollView
-        contentContainerStyle={[styles.content, { paddingBottom: TAB_BAR_HEIGHT + spacing.xl }]}
+        contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
@@ -227,11 +236,14 @@ export default function SearchScreen() {
           ) : null}
         </View>
       </ScrollView>
-    </Screen>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+  },
   header: {
     paddingHorizontal: spacing.lg,
     marginBottom: spacing.md,

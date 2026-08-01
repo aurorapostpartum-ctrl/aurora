@@ -1,13 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { router } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
-import { Avatar, Button, GlassCard, Screen, StatusBadge, Text } from '../../../src/components/ui';
-import { COMPANY } from '../../../src/data/company';
-import { useAuth } from '../../../src/providers/AuthProvider';
-import { colors, spacing, TAB_BAR_HEIGHT } from '../../../src/theme';
+import { Avatar, Button, GlassCard, Screen, StatusBadge, Text } from '../../src/components/ui';
+import { COMPANY } from '../../src/data/company';
+import { useAuth } from '../../src/providers/AuthProvider';
+import { colors, spacing } from '../../src/theme';
 
 export default function SettingsScreen() {
   const { person, signOut } = useAuth();
@@ -33,10 +34,13 @@ export default function SettingsScreen() {
 
   return (
     <Screen glow={false}>
-      <ScrollView
-        contentContainerStyle={[styles.content, { paddingBottom: TAB_BAR_HEIGHT + spacing.xl }]}
-        showsVerticalScrollIndicator={false}
-      >
+      <View style={styles.header}>
+        <Pressable onPress={() => router.back()} hitSlop={12} style={styles.backButton}>
+          <Ionicons name="chevron-back" size={22} color={colors.textPrimary} />
+        </Pressable>
+      </View>
+
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.inner}>
           <Animated.View entering={FadeInDown.duration(400)}>
             <Text variant="largeTitle" style={styles.title}>
@@ -146,9 +150,23 @@ function Divider() {
 }
 
 const styles = StyleSheet.create({
+  header: {
+    paddingHorizontal: spacing.lg,
+    marginBottom: spacing.xs,
+  },
+  backButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.surface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.surfaceBorder,
+  },
   content: {
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.sm,
+    paddingBottom: spacing.xxl,
     alignItems: 'center',
   },
   inner: {

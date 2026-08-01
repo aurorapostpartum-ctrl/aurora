@@ -48,6 +48,29 @@ shared demo password `sitevault`:
 
 Managers see the whole company; employees see only their assigned jobs.
 
+## Responsive application shell
+
+The signed-in app is wrapped in a single custom `AppShell`
+(`src/components/shell/`) that switches layout at the `laptop` breakpoint
+(1024px, see `src/theme/breakpoints.ts` / `src/hooks/useBreakpoint.ts`):
+
+- **Desktop / laptop** — a persistent left `Sidebar` with the role's nav
+  items, and a `Header` with page title, global search, notifications, and
+  the user profile menu.
+- **Tablet / mobile** — the sidebar collapses into a bottom `BottomNav`, and
+  the `Header` shows the SiteVault wordmark instead of a page title.
+
+Navigation is role-aware (`src/navigation/navConfig.ts`):
+
+- **Manager** — Dashboard, Jobs, Employees, Templates, Search
+- **Employee** — Home, My Jobs, Assessments, More
+
+`RoleGate` (`src/navigation/RoleGate.tsx`) enforces this at the route level —
+visiting a route your role doesn't own redirects you to your own landing
+page — while the nav config only controls what each role *sees*. Job Folder
+detail and other drill-in views (`job/[id]`, `person/[id]`, template detail,
+settings, notifications) push full-screen outside the shell.
+
 ## Project structure
 
 ```
@@ -55,7 +78,10 @@ app/                        Expo Router routes
   _layout.tsx                 Root layout — providers, auth-guarded navigator
   (auth)/                      Sign in, forgot password
   (app)/                       Signed-in app
-    (tabs)/                     Jobs, Search, Company, Settings
+    (shell)/                    Routes rendered inside AppShell
+      index.tsx                   Redirects to the signed-in person's landing route
+      dashboard.tsx, jobs.tsx, employees.tsx, templates.tsx, search.tsx    (manager)
+      home.tsx, my-jobs.tsx, assessments.tsx, more.tsx                    (employee)
     job/[id].tsx                 Job Folder — Overview, Documents & Prints,
                                   Checklists, Hazard Assessments, Photos,
                                   Deficiencies, Notes, Announcements,
@@ -63,19 +89,25 @@ app/                        Expo Router routes
     checklist-template/[id].tsx  Company checklist template detail
     hazard-template/[id].tsx     Company hazard assessment template detail
     person/[id].tsx               Manager or employee profile
+    settings.tsx                  Account settings (opened from the profile menu)
     notifications.tsx             Notifications
 
 src/
-  theme/                     Design tokens: colors, typography, spacing, motion
-  components/ui/             Reusable primitives: Button, TextField, GlassCard,
-                              Avatar, StatusBadge, ProgressBar, SegmentedControl,
-                              Skeleton, EmptyState, ErrorState, Screen, etc.
+  theme/                     Design tokens: colors, typography, spacing, radius,
+                              shadows, motion, breakpoints
+  components/ui/             Design system: Button, TextField, Card, Table, Modal,
+                              BottomSheet, Tabs, SegmentedControl, StatusBadge,
+                              ProgressBar, Avatar, Skeleton, LoadingState,
+                              EmptyState, ErrorState, Toast, Screen, etc.
+  components/shell/           AppShell, Sidebar, BottomNav, Header, ProfileMenu
+  navigation/                  navConfig (role → nav items) and RoleGate
+  hooks/useBreakpoint.ts        Responsive layout breakpoint hook
   providers/                  AuthProvider (local mock session), AppProviders
   data/                        Seeded company dataset (company.ts) and selectors
   types/                       Domain types: Company, Job, Document, Checklist,
                                 HazardAssessment, Deficiency, Activity, etc.
-  features/jobs/                JobFolderCard — the central, recurring visual
-                                 unit of the app
+  features/jobs/                JobFolderCard, JobFolderGrid — the central,
+                                 recurring visual unit of the app
   features/job/sections/        One component per Job Folder section
 ```
 

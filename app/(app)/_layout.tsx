@@ -10,11 +10,12 @@ export default function AppLayout() {
         contentStyle: { backgroundColor: colors.background },
       }}
     >
-      <Stack.Screen name="(tabs)" />
+      <Stack.Screen name="(shell)" />
       <Stack.Screen name="job/[id]" options={{ animation: 'slide_from_right' }} />
       <Stack.Screen name="checklist-template/[id]" options={{ animation: 'slide_from_right' }} />
       <Stack.Screen name="hazard-template/[id]" options={{ animation: 'slide_from_right' }} />
       <Stack.Screen name="person/[id]" options={{ animation: 'slide_from_right' }} />
+      <Stack.Screen name="settings" options={{ animation: 'slide_from_right' }} />
       <Stack.Screen
         name="notifications"
         options={{
