@@ -6,11 +6,12 @@ import { Platform, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { AnimatedBackground, AuthContainer, Button, Text, TextField } from '../../src/components/ui';
-import { PEOPLE } from '../../src/data/company';
 import { isValidEmail } from '../../src/lib/validation';
+import { useAuth } from '../../src/providers/AuthProvider';
 import { colors, spacing } from '../../src/theme';
 
 export default function ForgotPasswordScreen() {
+  const { accountExists } = useAuth();
   const [email, setEmail] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -25,8 +26,7 @@ export default function ForgotPasswordScreen() {
       return;
     }
 
-    const known = PEOPLE.some((p) => p.email.toLowerCase() === email.trim().toLowerCase());
-    if (!known) {
+    if (!accountExists(email)) {
       setError('No SiteVault account found with that email.');
       if (Platform.OS !== 'web') {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
@@ -45,6 +45,7 @@ export default function ForgotPasswordScreen() {
   };
 
   if (sent) {
+    const trimmedEmail = email.trim();
     return (
       <View style={styles.confirmWrap}>
         <AnimatedBackground />
@@ -58,15 +59,29 @@ export default function ForgotPasswordScreen() {
             </Text>
             <Text variant="body" color={colors.textSecondary} style={styles.confirmMessage}>
               Check {'\n'}
-              <Text variant="headline">{email.trim()}</Text>
+              <Text variant="headline">{trimmedEmail}</Text>
               {'\n'}for instructions to reset your password.
             </Text>
+            <Text variant="footnote" color={colors.textTertiary} style={styles.demoNote}>
+              Demo workspace — no email is actually sent. Continue below to set a new password
+              as if you&rsquo;d followed the link.
+            </Text>
           </Animated.View>
-          <Animated.View entering={FadeInDown.duration(420).delay(160)} style={styles.confirmAction}>
+          <Animated.View entering={FadeInDown.duration(420).delay(160)} style={styles.confirmActions}>
+            <Button
+              label="Continue to Reset Password"
+              onPress={() =>
+                router.replace({
+                  pathname: '/(auth)/reset-password',
+                  params: { email: trimmedEmail },
+                } as never)
+              }
+            />
             <Button
               label="Back to Sign In"
               variant="secondary"
               onPress={() => router.replace('/(auth)')}
+              style={styles.secondaryAction}
             />
           </Animated.View>
         </View>
@@ -165,8 +180,15 @@ const styles = StyleSheet.create({
   confirmMessage: {
     textAlign: 'center',
   },
-  confirmAction: {
+  demoNote: {
+    textAlign: 'center',
+    marginTop: spacing.md,
+  },
+  confirmActions: {
     marginTop: spacing.xl,
     width: '100%',
+  },
+  secondaryAction: {
+    marginTop: spacing.sm,
   },
 });

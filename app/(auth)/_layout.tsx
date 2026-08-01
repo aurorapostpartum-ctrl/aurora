@@ -13,6 +13,7 @@ export default function AuthLayout() {
     >
       <Stack.Screen name="index" />
       <Stack.Screen name="forgot-password" options={{ presentation: 'modal' }} />
+      <Stack.Screen name="reset-password" options={{ presentation: 'modal' }} />
     </Stack>
   );
 }

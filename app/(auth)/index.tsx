@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useEffect, useState } from 'react';
@@ -146,11 +147,12 @@ export default function SignInScreen() {
             </View>
 
             {formError ? (
-              <View style={styles.formErrorWrap}>
-                <Text variant="footnote" color={colors.danger}>
+              <Animated.View entering={FadeInDown.duration(200)} style={styles.formErrorBanner}>
+                <Ionicons name="alert-circle" size={16} color={colors.danger} />
+                <Text variant="footnote" color={colors.danger} style={styles.formErrorText}>
                   {formError}
                 </Text>
-              </View>
+              </Animated.View>
             ) : null}
 
             <Button
@@ -161,7 +163,7 @@ export default function SignInScreen() {
             />
 
             <Text variant="caption1" color={colors.textTertiary} style={styles.hint}>
-              Demo password for every account: {'sitevault'}
+              Every seeded account starts on the password &ldquo;sitevault&rdquo;
             </Text>
 
             <View style={styles.dividerRow}>
@@ -232,8 +234,20 @@ const styles = StyleSheet.create({
     marginTop: -spacing.xs,
     marginBottom: spacing.lg,
   },
-  formErrorWrap: {
+  formErrorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.dangerMuted,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(225,92,66,0.35)',
+    borderRadius: radius.md,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.sm,
     marginBottom: spacing.md,
+  },
+  formErrorText: {
+    marginLeft: spacing.xs,
+    flex: 1,
   },
   signInButton: {
     marginBottom: spacing.sm,
