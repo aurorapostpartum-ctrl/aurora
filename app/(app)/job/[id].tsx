@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { Avatar, EmptyState, ProgressBar, Screen, SegmentedControl, StatusBadge, Text } from '../../../src/components/ui';
+import { useMockDataVersion } from '../../../src/data/mockStore';
 import {
   activityForJob,
   checklistsForJob,
@@ -68,6 +69,7 @@ const SECTIONS: { value: SectionKey; label: string }[] = [
 export default function JobDetailScreen() {
   const { id, section } = useLocalSearchParams<{ id: string; section?: string }>();
   const { person } = useAuth();
+  useMockDataVersion();
   const job = getJob(id);
 
   const [activeSection, setActiveSection] = useState<SectionKey>(
@@ -116,6 +118,18 @@ export default function JobDetailScreen() {
         <Pressable onPress={() => router.back()} hitSlop={12} style={styles.backButton}>
           <Ionicons name="chevron-back" size={22} color={colors.textPrimary} />
         </Pressable>
+        {isManager ? (
+          <Pressable
+            onPress={() => router.push(`/(app)/job-edit/${job.id}` as never)}
+            hitSlop={12}
+            style={styles.editButton}
+          >
+            <Ionicons name="pencil" size={16} color={colors.textPrimary} />
+            <Text variant="subhead" color={colors.textPrimary} style={styles.editButtonLabel}>
+              Edit Job
+            </Text>
+          </Pressable>
+        ) : null}
       </View>
 
       <View style={styles.folderHeaderWrap}>
@@ -138,7 +152,7 @@ export default function JobDetailScreen() {
             <View style={styles.folderMetaRow}>
               <StatusBadge
                 label={job.status === 'active' ? 'Active' : job.status === 'on_hold' ? 'On Hold' : 'Completed'}
-                tone={job.status === 'active' ? 'success' : job.status === 'on_hold' ? 'warning' : 'neutral'}
+                tone={job.status === 'active' ? 'success' : job.status === 'on_hold' ? 'warning' : 'ink'}
               />
               <Text variant="caption1" color={colors.inkTertiary}>
                 Client: {job.client}
@@ -259,8 +273,24 @@ function formatShort(iso: string) {
 
 const styles = StyleSheet.create({
   header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: spacing.lg,
     marginBottom: spacing.xs,
+  },
+  editButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 36,
+    paddingHorizontal: spacing.md,
+    borderRadius: 18,
+    backgroundColor: colors.surface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.surfaceBorder,
+  },
+  editButtonLabel: {
+    marginLeft: spacing.xs,
   },
   backButton: {
     width: 36,

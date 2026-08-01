@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -9,7 +9,6 @@ import { DEFICIENCIES, JOBS, JOB_CHECKLISTS, JOB_HAZARD_ASSESSMENTS } from '../.
 import { useMockDataVersion } from '../../../src/data/mockStore';
 import { activityForJob, allActivitySorted, getJob, isWithinLastDays, personName, timeAgo } from '../../../src/data/selectors';
 import { JobFolderCard } from '../../../src/features/jobs/JobFolderCard';
-import { NewJobModal } from '../../../src/features/jobs/NewJobModal';
 import { RoleGate } from '../../../src/navigation/RoleGate';
 import { useAuth } from '../../../src/providers/AuthProvider';
 import { colors, spacing } from '../../../src/theme';
@@ -43,7 +42,6 @@ export default function DashboardScreen() {
 function DashboardContent() {
   const { person } = useAuth();
   const version = useMockDataVersion();
-  const [newJobOpen, setNewJobOpen] = useState(false);
 
   const stats = useMemo(() => {
     const activeJobs = JOBS.filter((j) => j.status === 'active').length;
@@ -88,7 +86,7 @@ function DashboardContent() {
             label="New Job"
             icon={<Ionicons name="add" size={18} color={colors.textOnAccent} style={styles.newJobIcon} />}
             fullWidth={false}
-            onPress={() => setNewJobOpen(true)}
+            onPress={() => router.push('/(app)/job-new' as never)}
             style={styles.newJobButton}
           />
         </Animated.View>
@@ -177,8 +175,6 @@ function DashboardContent() {
           </Card>
         </Animated.View>
       </View>
-
-      <NewJobModal visible={newJobOpen} onClose={() => setNewJobOpen(false)} />
     </ScrollView>
   );
 }

@@ -3,7 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import { colors, radius, spacing } from '../../theme';
 import { Text } from './Text';
 
-export type StatusTone = 'success' | 'warning' | 'danger' | 'neutral' | 'accent';
+export type StatusTone = 'success' | 'warning' | 'danger' | 'neutral' | 'accent' | 'ink';
 
 export interface StatusBadgeProps {
   label: string;
@@ -16,6 +16,9 @@ const TONE_STYLES: Record<StatusTone, { bg: string; fg: string; border: string }
   danger: { bg: colors.dangerMuted, fg: colors.danger, border: 'rgba(225,92,66,0.35)' },
   accent: { bg: colors.accentMuted, fg: colors.accentStrong, border: colors.accentBorder },
   neutral: { bg: colors.surface, fg: colors.textSecondary, border: colors.surfaceBorder },
+  // For the warm paper Job Folder surface, where `neutral`'s translucent-white
+  // styling (built for the dark app chrome) reads as nearly invisible.
+  ink: { bg: 'rgba(29,24,16,0.08)', fg: colors.ink, border: colors.paperBorder },
 };
 
 export function StatusBadge({ label, tone = 'neutral' }: StatusBadgeProps) {

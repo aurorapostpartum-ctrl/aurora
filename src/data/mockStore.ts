@@ -1,19 +1,23 @@
 import { useSyncExternalStore } from 'react';
 
-import { ACTIVITY, JOBS } from './company';
-import { demoNow } from './selectors';
+import { ACTIVITY, CHECKLIST_TEMPLATES, HAZARD_TEMPLATES, JOBS, JOB_CHECKLISTS, JOB_HAZARD_ASSESSMENTS } from './company';
+import { demoNow, formatDate } from './selectors';
 import { createId } from '../lib/id';
-import type { Job } from '../types/domain';
+import type { Job, JobStatus, ProjectType } from '../types/domain';
 
 // SiteVault's data is a seeded, in-memory dataset (see company.ts) rather
 // than a live backend. Screens that need to reflect writes made through
-// this store (e.g. creating a job from the dashboard) subscribe via
-// useMockDataVersion() and re-read the same JOBS/ACTIVITY array references,
-// which are mutated in place below.
+// this store (creating or editing a job) subscribe via useMockDataVersion()
+// and re-read the same JOBS/ACTIVITY/... array references, which are
+// mutated in place below. `version` is a plain counter — bumped on every
+// write — rather than something derived like array length, since an edit
+// mutates an existing entry without changing any array's length.
 
+let version = 0;
 const listeners = new Set<() => void>();
 
 function emitChange() {
+  version += 1;
   listeners.forEach((listener) => listener());
 }
 
@@ -23,7 +27,7 @@ function subscribe(listener: () => void) {
 }
 
 function getSnapshot() {
-  return JOBS.length + ACTIVITY.length;
+  return version;
 }
 
 export function useMockDataVersion() {
@@ -36,24 +40,31 @@ export interface CreateJobInput {
   name: string;
   address: string;
   client: string;
+  projectType: ProjectType;
+  startDate: string;
   targetCompletionDate: string;
   description: string;
   managerId: string;
+  employeeIds: string[];
+  checklistTemplateIds: string[];
+  hazardTemplateIds: string[];
 }
 
 export function createJob(input: CreateJobInput): Job {
-  const now = demoNow();
+  const now = demoNow().toISOString();
+
   const job: Job = {
     id: createId('job'),
     name: input.name.trim(),
     address: input.address.trim(),
     client: input.client.trim() || 'TBD',
+    projectType: input.projectType,
     status: 'active',
-    startDate: now.toISOString(),
+    startDate: input.startDate,
     targetCompletionDate: input.targetCompletionDate,
     tabColor: TAB_COLOR_PALETTE[JOBS.length % TAB_COLOR_PALETTE.length],
     managerIds: [input.managerId],
-    employeeIds: [],
+    employeeIds: input.employeeIds,
     description: input.description.trim(),
     progress: 0,
   };
@@ -64,10 +75,100 @@ export function createJob(input: CreateJobInput): Job {
     jobId: job.id,
     type: 'job_created',
     actorId: input.managerId,
-    createdAt: job.startDate,
+    createdAt: now,
     summary: `Created the ${job.name} job folder`,
   });
 
+  for (const templateId of input.checklistTemplateIds) {
+    const template = CHECKLIST_TEMPLATES.find((t) => t.id === templateId);
+    if (!template) continue;
+    JOB_CHECKLISTS.unshift({
+      id: createId('jcl'),
+      jobId: job.id,
+      templateId: template.id,
+      templateName: template.name,
+      trade: template.trade,
+      recordTitle: `${job.name} — ${template.name} — ${formatDate(now)}`,
+      generatedBy: input.managerId,
+      generatedAt: now,
+      status: 'in_progress',
+      items: template.items.map((item) => ({ id: item.id, text: item.text, status: 'pending' })),
+    });
+    ACTIVITY.unshift({
+      id: createId('act'),
+      jobId: job.id,
+      type: 'checklist_generated',
+      actorId: input.managerId,
+      createdAt: now,
+      summary: `Generated ${template.name}`,
+    });
+  }
+
+  for (const templateId of input.hazardTemplateIds) {
+    const template = HAZARD_TEMPLATES.find((t) => t.id === templateId);
+    if (!template) continue;
+    JOB_HAZARD_ASSESSMENTS.unshift({
+      id: createId('jha'),
+      jobId: job.id,
+      templateId: template.id,
+      templateName: template.name,
+      trade: template.trade,
+      recordTitle: `${job.name} — ${template.name} — ${formatDate(now)}`,
+      generatedBy: input.managerId,
+      generatedAt: now,
+      status: 'in_progress',
+      crewSignoff: [],
+      hazards: template.hazards.map((h) => ({
+        id: h.id,
+        hazard: h.hazard,
+        controlMeasure: h.controlMeasure,
+        acknowledged: false,
+      })),
+    });
+    ACTIVITY.unshift({
+      id: createId('act'),
+      jobId: job.id,
+      type: 'hazard_assessment_generated',
+      actorId: input.managerId,
+      createdAt: now,
+      summary: `Generated ${template.name}`,
+    });
+  }
+
   emitChange();
   return job;
+}
+
+export interface UpdateJobInput {
+  name: string;
+  address: string;
+  client: string;
+  projectType: ProjectType;
+  status: JobStatus;
+  startDate: string;
+  targetCompletionDate: string;
+  description: string;
+  employeeIds: string[];
+}
+
+export function updateJob(jobId: string, input: UpdateJobInput): Job | undefined {
+  const index = JOBS.findIndex((j) => j.id === jobId);
+  if (index === -1) return undefined;
+
+  const updated: Job = {
+    ...JOBS[index],
+    name: input.name.trim(),
+    address: input.address.trim(),
+    client: input.client.trim() || 'TBD',
+    projectType: input.projectType,
+    status: input.status,
+    startDate: input.startDate,
+    targetCompletionDate: input.targetCompletionDate,
+    description: input.description.trim(),
+    employeeIds: input.employeeIds,
+  };
+
+  JOBS[index] = updated;
+  emitChange();
+  return updated;
 }

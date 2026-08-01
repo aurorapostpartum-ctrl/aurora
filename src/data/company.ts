@@ -14,7 +14,16 @@ import type {
   JobPhoto,
   Person,
   ProjectCompletion,
+  ProjectType,
 } from '../types/domain';
+
+export const PROJECT_TYPES: ProjectType[] = [
+  'Residential',
+  'Multi-Family',
+  'Commercial',
+  'Institutional',
+  'Industrial',
+];
 
 export const COMPANY: Company = {
   id: 'co-northline',
@@ -88,6 +97,7 @@ export const JOBS: Job[] = [
     name: 'Riverstone Development',
     address: '482 Riverstone Pkwy, Austin, TX 78741',
     client: 'Riverstone Holdings LLC',
+    projectType: 'Multi-Family',
     status: 'active',
     startDate: '2026-01-12',
     targetCompletionDate: '2026-12-18',
@@ -103,6 +113,7 @@ export const JOBS: Job[] = [
     name: 'Westmount Commercial',
     address: '1290 Westmount Ave, Denver, CO 80202',
     client: 'Westmount Retail Partners',
+    projectType: 'Commercial',
     status: 'active',
     startDate: '2025-09-02',
     targetCompletionDate: '2026-10-30',
@@ -118,6 +129,7 @@ export const JOBS: Job[] = [
     name: 'Aspen Ridge Homes',
     address: '77 Aspen Ridge Rd, Boulder, CO 80302',
     client: 'Aspen Ridge Development Group',
+    projectType: 'Residential',
     status: 'active',
     startDate: '2025-04-21',
     targetCompletionDate: '2026-08-28',

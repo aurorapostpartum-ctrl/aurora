@@ -14,11 +14,14 @@ export interface Person {
 
 export type JobStatus = 'active' | 'on_hold' | 'completed';
 
+export type ProjectType = 'Residential' | 'Multi-Family' | 'Commercial' | 'Institutional' | 'Industrial';
+
 export interface Job {
   id: string;
   name: string;
   address: string;
   client: string;
+  projectType: ProjectType;
   status: JobStatus;
   startDate: string;
   targetCompletionDate: string;

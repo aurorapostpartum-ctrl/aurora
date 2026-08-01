@@ -13,10 +13,10 @@ const STATUS_LABEL: Record<Job['status'], string> = {
   completed: 'Completed',
 };
 
-const STATUS_TONE: Record<Job['status'], 'success' | 'warning' | 'neutral'> = {
+const STATUS_TONE: Record<Job['status'], 'success' | 'warning' | 'ink'> = {
   active: 'success',
   on_hold: 'warning',
-  completed: 'neutral',
+  completed: 'ink',
 };
 
 export interface JobFolderCardProps {
