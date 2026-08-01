@@ -1,19 +1,20 @@
+import { router } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
-import { Screen, Text, Toast } from '../../src/components/ui';
-import { useAuth } from '../../src/providers/AuthProvider';
-import { colors, spacing, TAB_BAR_HEIGHT } from '../../src/theme';
-import { ACTION_CARDS, FEATURED_ACTION } from '../../src/features/dashboard/actionCards';
-import { ActionCard } from '../../src/features/dashboard/ActionCard';
-import { FeaturedCard } from '../../src/features/dashboard/FeaturedCard';
-import { RecentSearchesSection } from '../../src/features/dashboard/RecentSearchesSection';
-import { SavedCodesSection } from '../../src/features/dashboard/SavedCodesSection';
-import { PinnedDocumentsSection } from '../../src/features/dashboard/PinnedDocumentsSection';
-import { NotificationsSection } from '../../src/features/dashboard/NotificationsSection';
-import { TodaysUpdatesSection } from '../../src/features/dashboard/TodaysUpdatesSection';
-import { useNotifications } from '../../src/features/dashboard/useNotifications';
+import { Screen, Text, Toast } from '../../../src/components/ui';
+import { useAuth } from '../../../src/providers/AuthProvider';
+import { colors, spacing, TAB_BAR_HEIGHT } from '../../../src/theme';
+import { ACTION_CARDS, FEATURED_ACTION } from '../../../src/features/dashboard/actionCards';
+import { ActionCard } from '../../../src/features/dashboard/ActionCard';
+import { FeaturedCard } from '../../../src/features/dashboard/FeaturedCard';
+import { RecentSearchesSection } from '../../../src/features/dashboard/RecentSearchesSection';
+import { SavedCodesSection } from '../../../src/features/dashboard/SavedCodesSection';
+import { PinnedDocumentsSection } from '../../../src/features/dashboard/PinnedDocumentsSection';
+import { NotificationsSection } from '../../../src/features/dashboard/NotificationsSection';
+import { TodaysUpdatesSection } from '../../../src/features/dashboard/TodaysUpdatesSection';
+import { useNotifications } from '../../../src/features/dashboard/useNotifications';
 
 export default function DashboardScreen() {
   const { user } = useAuth();
@@ -64,7 +65,7 @@ export default function DashboardScreen() {
           <Animated.View entering={FadeInDown.duration(400).delay(60)} style={styles.section}>
             <FeaturedCard
               config={FEATURED_ACTION}
-              onPress={() => showComingSoon(FEATURED_ACTION.title)}
+              onPress={() => router.push('/assistant')}
             />
           </Animated.View>
 

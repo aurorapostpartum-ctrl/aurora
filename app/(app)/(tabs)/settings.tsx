@@ -4,9 +4,9 @@ import { useMemo, useState } from 'react';
 import { Alert, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
-import { Button, GlassCard, Screen, Text } from '../../src/components/ui';
-import { useAuth } from '../../src/providers/AuthProvider';
-import { colors, spacing } from '../../src/theme';
+import { Button, GlassCard, Screen, Text } from '../../../src/components/ui';
+import { useAuth } from '../../../src/providers/AuthProvider';
+import { colors, spacing } from '../../../src/theme';
 
 export default function SettingsScreen() {
   const { user, signOut } = useAuth();
