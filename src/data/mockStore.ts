@@ -8,18 +8,22 @@ import {
   JOBS,
   JOB_CHECKLISTS,
   JOB_HAZARD_ASSESSMENTS,
+  PHOTOS,
 } from './company';
 import { demoNow, formatDate } from './selectors';
 import { createId } from '../lib/id';
 import type {
   ActivityType,
   ChecklistItem,
+  ChecklistItemStatus,
   ChecklistTemplate,
   ChecklistTemplateSection,
   DocumentCategory,
   DocumentFileType,
   Job,
+  JobChecklist,
   JobDocument,
+  JobPhoto,
   JobStatus,
   ProjectType,
   TemplateVisibility,
@@ -100,28 +104,7 @@ export function createJob(input: CreateJobInput): Job {
   });
 
   for (const templateId of input.checklistTemplateIds) {
-    const template = CHECKLIST_TEMPLATES.find((t) => t.id === templateId);
-    if (!template) continue;
-    JOB_CHECKLISTS.unshift({
-      id: createId('jcl'),
-      jobId: job.id,
-      templateId: template.id,
-      templateName: template.name,
-      trade: template.trade,
-      recordTitle: `${job.name} — ${template.name} — ${formatDate(now)}`,
-      generatedBy: input.managerId,
-      generatedAt: now,
-      status: 'in_progress',
-      items: flattenChecklistTemplateSections(template.sections),
-    });
-    ACTIVITY.unshift({
-      id: createId('act'),
-      jobId: job.id,
-      type: 'checklist_generated',
-      actorId: input.managerId,
-      createdAt: now,
-      summary: `Generated ${template.name}`,
-    });
+    generateChecklistFromTemplate({ jobId: job.id, templateId, generatedBy: input.managerId });
   }
 
   for (const templateId of input.hazardTemplateIds) {
@@ -510,6 +493,148 @@ export function setChecklistTemplateArchived(templateId: string, archived: boole
 
   const updated: ChecklistTemplate = { ...CHECKLIST_TEMPLATES[index], archived, updatedAt: demoNow().toISOString() };
   CHECKLIST_TEMPLATES[index] = updated;
+  emitChange();
+  return updated;
+}
+
+const PHOTO_PALETTE = ['#8C6A4A', '#5B7CA3', '#9A8464', '#4C6B58', '#A45D4E', '#6E5A9E', '#C4813C'];
+
+export interface AddPhotoInput {
+  jobId: string;
+  caption: string;
+  uploadedBy: string;
+  tags?: string[];
+}
+
+export function addPhoto(input: AddPhotoInput): JobPhoto {
+  const photo: JobPhoto = {
+    id: createId('ph'),
+    jobId: input.jobId,
+    swatch: PHOTO_PALETTE[PHOTOS.length % PHOTO_PALETTE.length],
+    caption: input.caption,
+    uploadedBy: input.uploadedBy,
+    uploadedAt: demoNow().toISOString(),
+    tags: input.tags ?? [],
+  };
+  PHOTOS.unshift(photo);
+  ACTIVITY.unshift({
+    id: createId('act'),
+    jobId: input.jobId,
+    type: 'photo_uploaded',
+    actorId: input.uploadedBy,
+    createdAt: photo.uploadedAt,
+    summary: `Uploaded photo: ${photo.caption}`,
+  });
+  emitChange();
+  return photo;
+}
+
+export interface GenerateChecklistInput {
+  jobId: string;
+  templateId: string;
+  generatedBy: string;
+}
+
+export function generateChecklistFromTemplate(input: GenerateChecklistInput): JobChecklist | undefined {
+  const template = CHECKLIST_TEMPLATES.find((t) => t.id === input.templateId);
+  if (!template) return undefined;
+
+  const job = JOBS.find((j) => j.id === input.jobId);
+  const now = demoNow().toISOString();
+  const record: JobChecklist = {
+    id: createId('jcl'),
+    jobId: input.jobId,
+    templateId: template.id,
+    templateName: template.name,
+    trade: template.trade,
+    recordTitle: `${job?.name ?? ''} — ${template.name} — ${formatDate(now)}`,
+    generatedBy: input.generatedBy,
+    generatedAt: now,
+    status: 'in_progress',
+    items: flattenChecklistTemplateSections(template.sections),
+  };
+
+  JOB_CHECKLISTS.unshift(record);
+  ACTIVITY.unshift({
+    id: createId('act'),
+    jobId: input.jobId,
+    type: 'checklist_generated',
+    actorId: input.generatedBy,
+    createdAt: now,
+    summary: `Generated ${template.name}`,
+  });
+  emitChange();
+  return record;
+}
+
+export function updateChecklistItemStatus(
+  checklistId: string,
+  itemId: string,
+  status: ChecklistItemStatus
+): JobChecklist | undefined {
+  const index = JOB_CHECKLISTS.findIndex((c) => c.id === checklistId);
+  if (index === -1) return undefined;
+
+  const checklist = JOB_CHECKLISTS[index];
+  const updated: JobChecklist = {
+    ...checklist,
+    items: checklist.items.map((item) => (item.id === itemId ? { ...item, status } : item)),
+  };
+  JOB_CHECKLISTS[index] = updated;
+  emitChange();
+  return updated;
+}
+
+export function updateChecklistItemNote(checklistId: string, itemId: string, note: string): JobChecklist | undefined {
+  const index = JOB_CHECKLISTS.findIndex((c) => c.id === checklistId);
+  if (index === -1) return undefined;
+
+  const checklist = JOB_CHECKLISTS[index];
+  const updated: JobChecklist = {
+    ...checklist,
+    items: checklist.items.map((item) => (item.id === itemId ? { ...item, note: note || undefined } : item)),
+  };
+  JOB_CHECKLISTS[index] = updated;
+  emitChange();
+  return updated;
+}
+
+export function addChecklistItemPhoto(checklistId: string, itemId: string, uploadedBy: string): JobChecklist | undefined {
+  const index = JOB_CHECKLISTS.findIndex((c) => c.id === checklistId);
+  if (index === -1) return undefined;
+
+  const checklist = JOB_CHECKLISTS[index];
+  const item = checklist.items.find((i) => i.id === itemId);
+  if (!item) return undefined;
+
+  const photo = addPhoto({ jobId: checklist.jobId, caption: item.text, uploadedBy, tags: ['checklist'] });
+
+  const updated: JobChecklist = {
+    ...checklist,
+    items: checklist.items.map((i) => (i.id === itemId ? { ...i, photoIds: [...(i.photoIds ?? []), photo.id] } : i)),
+  };
+  JOB_CHECKLISTS[index] = updated;
+  emitChange();
+  return updated;
+}
+
+export function submitChecklist(checklistId: string, submittedBy: string): JobChecklist | undefined {
+  const index = JOB_CHECKLISTS.findIndex((c) => c.id === checklistId);
+  if (index === -1) return undefined;
+
+  const checklist = JOB_CHECKLISTS[index];
+  const now = demoNow().toISOString();
+  const updated: JobChecklist = { ...checklist, status: 'completed', completedBy: submittedBy, completedAt: now };
+  JOB_CHECKLISTS[index] = updated;
+
+  ACTIVITY.unshift({
+    id: createId('act'),
+    jobId: checklist.jobId,
+    type: 'checklist_completed',
+    actorId: submittedBy,
+    createdAt: now,
+    summary: `Submitted ${checklist.templateName}`,
+  });
   emitChange();
   return updated;
 }

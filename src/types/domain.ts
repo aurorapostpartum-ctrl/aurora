@@ -67,7 +67,7 @@ export interface JobDocument {
   reviewRequired: boolean;
 }
 
-export type ChecklistItemStatus = 'pending' | 'pass' | 'fail' | 'na';
+export type ChecklistItemStatus = 'pending' | 'complete' | 'incomplete' | 'na';
 
 export interface ChecklistItem {
   id: string;
@@ -78,6 +78,7 @@ export interface ChecklistItem {
   sectionName?: string;
   required?: boolean;
   requiresPhoto?: boolean;
+  photoIds?: string[];
 }
 
 export interface ChecklistTemplateItem {

@@ -1,34 +1,28 @@
 import { Ionicons } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
-import { useState, type Dispatch, type SetStateAction } from 'react';
-import { Platform, Pressable, StyleSheet, View } from 'react-native';
+import { router } from 'expo-router';
+import { useState } from 'react';
+import { Pressable, StyleSheet, View } from 'react-native';
 
-import { Button, EmptyState, SelectModal, StatusBadge, Text } from '../../../components/ui';
+import { Button, Card, EmptyState, SelectModal, StatusBadge, Text } from '../../../components/ui';
 import { CHECKLIST_TEMPLATES } from '../../../data/company';
-import { flattenChecklistTemplateSections } from '../../../data/mockStore';
+import { generateChecklistFromTemplate } from '../../../data/mockStore';
 import { formatDate, personName } from '../../../data/selectors';
-import { createId } from '../../../lib/id';
-import { colors, radius, spacing } from '../../../theme';
-import type { ChecklistItemStatus, Job, JobChecklist, Person } from '../../../types/domain';
+import { colors, spacing } from '../../../theme';
+import type { Job, JobChecklist, Person } from '../../../types/domain';
 
 interface ChecklistsSectionProps {
   job: Job;
   person: Person;
   checklists: JobChecklist[];
-  setChecklists: Dispatch<SetStateAction<JobChecklist[]>>;
 }
 
-const STATUS_CYCLE: ChecklistItemStatus[] = ['pending', 'pass', 'fail', 'na'];
+function completionPercent(c: JobChecklist): number {
+  if (c.items.length === 0) return 0;
+  const answered = c.items.filter((i) => i.status !== 'pending').length;
+  return Math.round((answered / c.items.length) * 100);
+}
 
-const ITEM_STATUS_META: Record<ChecklistItemStatus, { label: string; color: string; icon: keyof typeof Ionicons.glyphMap }> = {
-  pending: { label: 'Pending', color: colors.textTertiary, icon: 'ellipse-outline' },
-  pass: { label: 'Pass', color: colors.success, icon: 'checkmark-circle' },
-  fail: { label: 'Fail', color: colors.danger, icon: 'close-circle' },
-  na: { label: 'N/A', color: colors.textSecondary, icon: 'remove-circle-outline' },
-};
-
-export function ChecklistsSection({ job, person, checklists, setChecklists }: ChecklistsSectionProps) {
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+export function ChecklistsSection({ job, person, checklists }: ChecklistsSectionProps) {
   const [templatePickerOpen, setTemplatePickerOpen] = useState(false);
 
   const availableTemplates = CHECKLIST_TEMPLATES.filter(
@@ -36,49 +30,8 @@ export function ChecklistsSection({ job, person, checklists, setChecklists }: Ch
   );
 
   const handleGenerate = (templateId: string) => {
-    const template = CHECKLIST_TEMPLATES.find((t) => t.id === templateId);
-    if (!template) return;
-
-    const now = new Date();
-    const record: JobChecklist = {
-      id: createId('jcl'),
-      jobId: job.id,
-      templateId: template.id,
-      templateName: template.name,
-      trade: template.trade,
-      recordTitle: `${job.name} — ${template.name} — ${formatDate(now.toISOString())}`,
-      generatedBy: person.id,
-      generatedAt: now.toISOString(),
-      status: 'in_progress',
-      items: flattenChecklistTemplateSections(template.sections),
-    };
-
-    setChecklists((prev) => [record, ...prev]);
-    setExpandedId(record.id);
-    if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-  };
-
-  const cycleItemStatus = (checklistId: string, itemId: string) => {
-    if (Platform.OS !== 'web') Haptics.selectionAsync();
-    setChecklists((prev) =>
-      prev.map((c) => {
-        if (c.id !== checklistId) return c;
-        const items = c.items.map((item) => {
-          if (item.id !== itemId) return item;
-          const nextIndex = (STATUS_CYCLE.indexOf(item.status) + 1) % STATUS_CYCLE.length;
-          return { ...item, status: STATUS_CYCLE[nextIndex] };
-        });
-        const allResolved = items.every((i) => i.status !== 'pending');
-        const nowComplete = allResolved && c.status !== 'completed';
-        return {
-          ...c,
-          items,
-          status: allResolved ? 'completed' : 'in_progress',
-          completedBy: allResolved ? c.completedBy ?? person.id : undefined,
-          completedAt: nowComplete ? new Date().toISOString() : c.completedAt,
-        };
-      })
-    );
+    const record = generateChecklistFromTemplate({ jobId: job.id, templateId, generatedBy: person.id });
+    if (record) router.push(`/(app)/checklist/${record.id}` as never);
   };
 
   return (
@@ -87,12 +40,7 @@ export function ChecklistsSection({ job, person, checklists, setChecklists }: Ch
         <Text variant="footnote" color={colors.textTertiary}>
           {checklists.length} {checklists.length === 1 ? 'checklist' : 'checklists'}
         </Text>
-        <Button
-          label="Generate from Template"
-          size="md"
-          fullWidth={false}
-          onPress={() => setTemplatePickerOpen(true)}
-        />
+        <Button label="Generate Checklist" size="md" fullWidth={false} onPress={() => setTemplatePickerOpen(true)} />
       </View>
 
       {checklists.length === 0 ? (
@@ -103,76 +51,35 @@ export function ChecklistsSection({ job, person, checklists, setChecklists }: Ch
         />
       ) : (
         checklists.map((c) => {
-          const expanded = expandedId === c.id;
-          const passCount = c.items.filter((i) => i.status === 'pass').length;
-          const failCount = c.items.filter((i) => i.status === 'fail').length;
-
+          const percent = completionPercent(c);
           return (
-            <View key={c.id} style={styles.card}>
-              <Pressable style={styles.headerRow} onPress={() => setExpandedId(expanded ? null : c.id)}>
-                <View style={styles.headerText}>
-                  <Text variant="headline" numberOfLines={2}>
-                    {c.recordTitle}
-                  </Text>
-                  <Text variant="footnote" color={colors.textTertiary} style={styles.meta}>
-                    Generated by {personName(c.generatedBy)} · {formatDate(c.generatedAt)}
-                  </Text>
-                </View>
-                <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={16} color={colors.textTertiary} />
-              </Pressable>
-
-              <View style={styles.badgeRow}>
-                <StatusBadge
-                  label={c.status === 'completed' ? 'Completed' : 'In Progress'}
-                  tone={c.status === 'completed' ? 'success' : 'warning'}
-                />
-                <StatusBadge label={`${passCount} pass`} tone="success" />
-                {failCount > 0 ? <StatusBadge label={`${failCount} fail`} tone="danger" /> : null}
-              </View>
-
-              {expanded ? (
-                <View style={styles.itemList}>
-                  {c.items.map((item, index) => {
-                    const meta = ITEM_STATUS_META[item.status];
-                    const showSectionHeader = item.sectionName && item.sectionName !== c.items[index - 1]?.sectionName;
-                    return (
-                      <View key={item.id}>
-                        {showSectionHeader ? (
-                          <Text variant="caption1" color={colors.textTertiary} style={styles.sectionHeader}>
-                            {item.sectionName!.toUpperCase()}
-                          </Text>
-                        ) : null}
-                        <Pressable style={styles.itemRow} onPress={() => cycleItemStatus(c.id, item.id)}>
-                          <Ionicons name={meta.icon} size={18} color={meta.color} />
-                          <View style={styles.itemTextWrap}>
-                            <Text variant="body">{item.text}</Text>
-                            {item.note ? (
-                              <Text variant="caption1" color={colors.textTertiary}>
-                                {item.note}
-                              </Text>
-                            ) : null}
-                          </View>
-                          {item.requiresPhoto ? (
-                            <Ionicons name="camera-outline" size={14} color={colors.textTertiary} style={styles.itemFlagIcon} />
-                          ) : null}
-                          {item.required ? (
-                            <Text variant="caption2" color={colors.warning} style={styles.itemFlagIcon}>
-                              Required
-                            </Text>
-                          ) : null}
-                          <Text variant="caption1" color={meta.color}>
-                            {meta.label}
-                          </Text>
-                        </Pressable>
-                      </View>
-                    );
-                  })}
-                  <Text variant="caption2" color={colors.textTertiary} style={styles.tapHint}>
-                    Tap an item to cycle Pending → Pass → Fail → N/A
-                  </Text>
-                </View>
-              ) : null}
-            </View>
+            <Pressable key={c.id} onPress={() => router.push(`/(app)/checklist/${c.id}` as never)} style={styles.rowPressable}>
+              {({ pressed }) => (
+                <Card style={[styles.row, pressed && styles.rowPressed]} shadowToken="xs">
+                  <View style={styles.iconWrap}>
+                    <Ionicons name="checkbox-outline" size={18} color={colors.accentStrong} />
+                  </View>
+                  <View style={styles.rowBody}>
+                    <View style={styles.titleRow}>
+                      <Text variant="headline" numberOfLines={1} style={styles.title}>
+                        {c.templateName}
+                      </Text>
+                      <StatusBadge
+                        label={c.status === 'completed' ? 'Completed' : 'In Progress'}
+                        tone={c.status === 'completed' ? 'success' : 'warning'}
+                      />
+                    </View>
+                    <Text variant="footnote" color={colors.textSecondary} numberOfLines={1}>
+                      {c.trade} · {percent}% complete
+                    </Text>
+                    <Text variant="footnote" color={colors.textTertiary} numberOfLines={1}>
+                      Generated by {personName(c.generatedBy)} · {formatDate(c.generatedAt)}
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={16} color={colors.textTertiary} />
+                </Card>
+              )}
+            </Pressable>
           );
         })
       )}
@@ -196,56 +103,37 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: spacing.md,
   },
-  card: {
-    backgroundColor: colors.surface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.surfaceBorder,
-    borderRadius: radius.md,
-    padding: spacing.md,
+  rowPressable: {
     marginBottom: spacing.sm,
   },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-  },
-  headerText: {
-    flex: 1,
-    marginRight: spacing.sm,
-  },
-  meta: {
-    marginTop: 2,
-  },
-  badgeRow: {
-    flexDirection: 'row',
-    gap: spacing.xs,
-    marginTop: spacing.sm,
-    flexWrap: 'wrap',
-  },
-  itemList: {
-    marginTop: spacing.md,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.divider,
-    paddingTop: spacing.sm,
-  },
-  itemRow: {
+  row: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: spacing.xs + 2,
+    padding: spacing.md,
   },
-  itemTextWrap: {
+  rowPressed: {
+    opacity: 0.92,
+  },
+  iconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.accentMuted,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rowBody: {
     flex: 1,
     marginLeft: spacing.sm,
     marginRight: spacing.sm,
   },
-  itemFlagIcon: {
-    marginRight: spacing.xs,
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginBottom: 2,
   },
-  sectionHeader: {
-    marginTop: spacing.sm,
-    marginBottom: spacing.xxs,
-    letterSpacing: 1,
-  },
-  tapHint: {
-    marginTop: spacing.xs,
+  title: {
+    flexShrink: 1,
   },
 });

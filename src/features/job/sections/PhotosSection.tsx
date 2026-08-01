@@ -1,37 +1,23 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import { type Dispatch, type SetStateAction } from 'react';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
 
 import { Button, EmptyState, Text } from '../../../components/ui';
+import { addPhoto } from '../../../data/mockStore';
 import { timeAgo } from '../../../data/selectors';
-import { createId } from '../../../lib/id';
 import { colors, radius, spacing } from '../../../theme';
 import type { Job, JobPhoto, Person } from '../../../types/domain';
 
 interface PhotosSectionProps {
   photos: JobPhoto[];
-  setPhotos: Dispatch<SetStateAction<JobPhoto[]>>;
   job: Job;
   person: Person;
 }
 
-const PALETTE = ['#8C6A4A', '#5B7CA3', '#9A8464', '#4C6B58', '#A45D4E', '#6E5A9E', '#C4813C'];
-
-export function PhotosSection({ photos, setPhotos, job, person }: PhotosSectionProps) {
+export function PhotosSection({ photos, job, person }: PhotosSectionProps) {
   const handleAddPhoto = () => {
     if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    const swatch = PALETTE[photos.length % PALETTE.length];
-    const photo: JobPhoto = {
-      id: createId('ph'),
-      jobId: job.id,
-      swatch,
-      caption: 'New site photo',
-      uploadedBy: person.id,
-      uploadedAt: new Date().toISOString(),
-      tags: [],
-    };
-    setPhotos((prev) => [photo, ...prev]);
+    addPhoto({ jobId: job.id, caption: 'New site photo', uploadedBy: person.id });
   };
 
   return (

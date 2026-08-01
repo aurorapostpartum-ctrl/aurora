@@ -37,10 +37,8 @@ import { colors, spacing } from '../../../src/theme';
 import type {
   Deficiency,
   JobAnnouncement,
-  JobChecklist,
   JobHazardAssessment,
   JobNote,
-  JobPhoto,
   ProjectCompletion,
 } from '../../../src/types/domain';
 
@@ -95,11 +93,9 @@ export default function JobDetailScreen() {
   const [uploadDocOpen, setUploadDocOpen] = useState(false);
   const [moreActionsOpen, setMoreActionsOpen] = useState(false);
 
-  const [checklists, setChecklists] = useState<JobChecklist[]>(() => (job ? checklistsForJob(job.id) : []));
   const [hazards, setHazards] = useState<JobHazardAssessment[]>(() =>
     job ? hazardAssessmentsForJob(job.id) : []
   );
-  const [photos, setPhotos] = useState<JobPhoto[]>(() => (job ? photosForJob(job.id) : []));
   const [deficiencies, setDeficiencies] = useState<Deficiency[]>(() =>
     job ? deficienciesForJob(job.id) : []
   );
@@ -112,6 +108,8 @@ export default function JobDetailScreen() {
   );
 
   const documents = job ? documentsForJob(job.id) : [];
+  const checklists = job ? checklistsForJob(job.id) : [];
+  const photos = job ? photosForJob(job.id) : [];
   const activity = useMemo(() => (job ? activityForJob(job.id) : []), [job, version]);
 
   if (!job || !person) {
@@ -274,18 +272,13 @@ export default function JobDetailScreen() {
           ) : null}
           {activeSection === 'documents' ? <DocumentsSection documents={documents} person={person} /> : null}
           {activeSection === 'checklists' ? (
-            <ChecklistsSection
-              job={job}
-              person={person}
-              checklists={checklists}
-              setChecklists={setChecklists}
-            />
+            <ChecklistsSection job={job} person={person} checklists={checklists} />
           ) : null}
           {activeSection === 'hazards' ? (
             <HazardsSection job={job} person={person} hazards={hazards} setHazards={setHazards} />
           ) : null}
           {activeSection === 'photos' ? (
-            <PhotosSection photos={photos} setPhotos={setPhotos} job={job} person={person} />
+            <PhotosSection photos={photos} job={job} person={person} />
           ) : null}
           {activeSection === 'deficiencies' && isManager ? (
             <DeficienciesSection

@@ -46,6 +46,16 @@ export function checklistsForJob(jobId: string) {
   return JOB_CHECKLISTS.filter((c) => c.jobId === jobId);
 }
 
+export function getChecklist(id: string | undefined) {
+  if (!id) return undefined;
+  return JOB_CHECKLISTS.find((c) => c.id === id);
+}
+
+export function getPhoto(id: string | undefined) {
+  if (!id) return undefined;
+  return PHOTOS.find((p) => p.id === id);
+}
+
 export function hazardAssessmentsForJob(jobId: string) {
   return JOB_HAZARD_ASSESSMENTS.filter((h) => h.jobId === jobId);
 }
@@ -141,6 +151,14 @@ export function timeAgo(iso: string): string {
 export function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-US', {
     month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}
+
+export function formatLongDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('en-US', {
+    month: 'long',
     day: 'numeric',
     year: 'numeric',
   });
