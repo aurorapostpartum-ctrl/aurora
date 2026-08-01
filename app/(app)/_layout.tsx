@@ -3,7 +3,7 @@ import { BlurView } from 'expo-blur';
 import { Tabs } from 'expo-router';
 import { Platform, StyleSheet } from 'react-native';
 
-import { colors } from '../../src/theme';
+import { colors, TAB_BAR_HEIGHT } from '../../src/theme';
 
 export default function AppTabsLayout() {
   return (
@@ -53,7 +53,7 @@ const styles = StyleSheet.create({
     borderTopColor: colors.divider,
     backgroundColor: Platform.OS === 'android' ? colors.backgroundElevated : 'transparent',
     elevation: 0,
-    height: Platform.OS === 'ios' ? 88 : 64,
+    height: TAB_BAR_HEIGHT,
     paddingTop: 8,
   },
   label: {
