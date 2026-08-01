@@ -54,7 +54,13 @@
           "fonts": []
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "CodeBook Canada Pro uses your photo library to set your company logo."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

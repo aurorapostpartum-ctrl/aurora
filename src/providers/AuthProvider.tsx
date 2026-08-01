@@ -9,6 +9,7 @@ import {
 } from 'react';
 
 import { supabase } from '../lib/supabase';
+import type { OnboardingPayload } from '../features/onboarding/types';
 
 export type AuthStatus = 'loading' | 'signedIn' | 'signedOut';
 
@@ -16,6 +17,7 @@ interface AuthContextValue {
   status: AuthStatus;
   session: Session | null;
   user: User | null;
+  needsOnboarding: boolean;
   signInWithPassword: (email: string, password: string) => Promise<{ error: string | null }>;
   signUpWithPassword: (
     email: string,
@@ -25,6 +27,7 @@ interface AuthContextValue {
   ) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: string | null }>;
+  completeOnboarding: (payload: OnboardingPayload) => Promise<{ error: string | null }>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -80,17 +83,48 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error: error?.message ?? null };
   }, []);
 
+  const completeOnboarding = useCallback(async (payload: OnboardingPayload) => {
+    const { error } = await supabase.auth.updateUser({
+      data: {
+        onboarding_completed: true,
+        company_name: payload.companyName,
+        province: payload.province,
+        trades: payload.trades,
+        employee_count: payload.employeeCount,
+        logo_uri: payload.logoUri,
+        invited_emails: payload.inviteEmails,
+        subscription_plan: payload.subscriptionPlan,
+      },
+    });
+    return { error: error?.message ?? null };
+  }, []);
+
+  const needsOnboarding = Boolean(
+    session && session.user.user_metadata?.onboarding_completed !== true
+  );
+
   const value = useMemo<AuthContextValue>(
     () => ({
       status,
       session,
       user: session?.user ?? null,
+      needsOnboarding,
       signInWithPassword,
       signUpWithPassword,
       signOut,
       resetPassword,
+      completeOnboarding,
     }),
-    [status, session, signInWithPassword, signUpWithPassword, signOut, resetPassword]
+    [
+      status,
+      session,
+      needsOnboarding,
+      signInWithPassword,
+      signUpWithPassword,
+      signOut,
+      resetPassword,
+      completeOnboarding,
+    ]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
