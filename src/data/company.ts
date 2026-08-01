@@ -462,15 +462,52 @@ export const CHECKLIST_TEMPLATES: ChecklistTemplate[] = [
     trade: 'Plumbing',
     description: 'Final rough-in and trim verification before plumbing sign-off.',
     createdBy: 'mgr-sarah',
+    createdAt: '2026-01-05T09:00:00Z',
     updatedAt: '2026-02-10T09:00:00Z',
-    items: [
-      { id: 'i1', text: 'All fixtures set and secured' },
-      { id: 'i2', text: 'Water supply lines pressure tested' },
-      { id: 'i3', text: 'Drain, waste & vent system tested' },
-      { id: 'i4', text: 'Backflow preventers installed and tagged' },
-      { id: 'i5', text: 'Water heater installed to code clearance' },
-      { id: 'i6', text: 'All shutoff valves labeled' },
-      { id: 'i7', text: 'Site clean and free of debris' },
+    visibility: 'company',
+    archived: false,
+    sections: [
+      {
+        id: 'sec-plumb-fixtures',
+        name: 'Fixtures',
+        items: [
+          { id: 'i1', text: 'All fixtures set and secured', required: true, requiresPhoto: false },
+          { id: 'i2', text: 'Fixtures tested for proper operation', required: true, requiresPhoto: false },
+          {
+            id: 'i3',
+            text: 'Leaks checked at all supply and drain connections',
+            required: true,
+            requiresPhoto: true,
+            notes: 'Photograph each connection point under pressure test.',
+          },
+        ],
+      },
+      {
+        id: 'sec-plumb-roughin',
+        name: 'Rough-In & Backflow',
+        items: [
+          { id: 'i4', text: 'Water supply lines pressure tested', required: true, requiresPhoto: false },
+          { id: 'i5', text: 'Drain, waste & vent system tested', required: true, requiresPhoto: false },
+          { id: 'i6', text: 'Backflow preventers installed and tagged', required: true, requiresPhoto: true },
+          { id: 'i7', text: 'Water heater installed to code clearance', required: true, requiresPhoto: false },
+          { id: 'i8', text: 'All shutoff valves labeled', required: false, requiresPhoto: false },
+        ],
+      },
+      {
+        id: 'sec-plumb-docs',
+        name: 'Documentation',
+        items: [
+          { id: 'i9', text: 'Site clean and free of debris', required: false, requiresPhoto: false },
+          {
+            id: 'i10',
+            text: 'Photos uploaded',
+            required: true,
+            requiresPhoto: true,
+            notes: 'Include wide shots of each fixture group.',
+          },
+          { id: 'i11', text: 'Final documentation complete', required: true, requiresPhoto: false },
+        ],
+      },
     ],
   },
   {
@@ -479,13 +516,34 @@ export const CHECKLIST_TEMPLATES: ChecklistTemplate[] = [
     trade: 'Carpentry',
     description: 'Pre-drywall framing verification against structural drawings.',
     createdBy: 'mgr-daniel',
+    createdAt: '2025-12-10T09:00:00Z',
     updatedAt: '2026-01-22T09:00:00Z',
-    items: [
-      { id: 'i1', text: 'Wall framing matches structural plan' },
-      { id: 'i2', text: 'Headers sized and installed per schedule' },
-      { id: 'i3', text: 'Fire blocking installed' },
-      { id: 'i4', text: 'Shear wall nailing pattern verified' },
-      { id: 'i5', text: 'Roof trusses braced per manufacturer spec' },
+    visibility: 'company',
+    archived: false,
+    sections: [
+      {
+        id: 'sec-framing-structural',
+        name: 'Structural Framing',
+        items: [
+          { id: 'i1', text: 'Wall framing matches structural plan', required: true, requiresPhoto: false },
+          { id: 'i2', text: 'Headers sized and installed per schedule', required: true, requiresPhoto: false },
+          {
+            id: 'i3',
+            text: 'Shear wall nailing pattern verified',
+            required: true,
+            requiresPhoto: true,
+            notes: 'Photograph nailing pattern before it gets covered.',
+          },
+        ],
+      },
+      {
+        id: 'sec-framing-fireroof',
+        name: 'Fire & Roof',
+        items: [
+          { id: 'i4', text: 'Fire blocking installed', required: true, requiresPhoto: false },
+          { id: 'i5', text: 'Roof trusses braced per manufacturer spec', required: true, requiresPhoto: true },
+        ],
+      },
     ],
   },
   {
@@ -494,13 +552,28 @@ export const CHECKLIST_TEMPLATES: ChecklistTemplate[] = [
     trade: 'Electrical',
     description: 'Rough-in verification prior to insulation and drywall.',
     createdBy: 'mgr-daniel',
+    createdAt: '2026-02-01T09:00:00Z',
     updatedAt: '2026-03-04T09:00:00Z',
-    items: [
-      { id: 'i1', text: 'Panel schedule matches installed circuits' },
-      { id: 'i2', text: 'Box fill calculations verified' },
-      { id: 'i3', text: 'GFCI/AFCI protection confirmed on required circuits' },
-      { id: 'i4', text: 'Grounding and bonding complete' },
-      { id: 'i5', text: 'Rough-in inspection tag posted' },
+    visibility: 'company',
+    archived: false,
+    sections: [
+      {
+        id: 'sec-elec-panel',
+        name: 'Panel & Circuits',
+        items: [
+          { id: 'i1', text: 'Panel schedule matches installed circuits', required: true, requiresPhoto: false },
+          { id: 'i2', text: 'Box fill calculations verified', required: false, requiresPhoto: false },
+          { id: 'i3', text: 'GFCI/AFCI protection confirmed on required circuits', required: true, requiresPhoto: false },
+        ],
+      },
+      {
+        id: 'sec-elec-signoff',
+        name: 'Grounding & Sign-Off',
+        items: [
+          { id: 'i4', text: 'Grounding and bonding complete', required: true, requiresPhoto: true },
+          { id: 'i5', text: 'Rough-in inspection tag posted', required: true, requiresPhoto: true },
+        ],
+      },
     ],
   },
   {
@@ -509,13 +582,77 @@ export const CHECKLIST_TEMPLATES: ChecklistTemplate[] = [
     trade: 'Concrete',
     description: 'Formwork and reinforcement verification prior to placing concrete.',
     createdBy: 'mgr-sarah',
+    createdAt: '2026-03-20T09:00:00Z',
     updatedAt: '2026-04-18T09:00:00Z',
-    items: [
-      { id: 'i1', text: 'Formwork braced and aligned to layout' },
-      { id: 'i2', text: 'Reinforcement size, spacing & cover verified' },
-      { id: 'i3', text: 'Embeds and sleeves placed per plan' },
-      { id: 'i4', text: 'Vapor barrier intact and taped' },
-      { id: 'i5', text: 'Weather protection plan in place' },
+    visibility: 'company',
+    archived: false,
+    sections: [
+      {
+        id: 'sec-prepour-formwork',
+        name: 'Formwork & Reinforcement',
+        items: [
+          { id: 'i1', text: 'Formwork braced and aligned to layout', required: true, requiresPhoto: false },
+          { id: 'i2', text: 'Reinforcement size, spacing & cover verified', required: true, requiresPhoto: true },
+          { id: 'i3', text: 'Embeds and sleeves placed per plan', required: true, requiresPhoto: false },
+        ],
+      },
+      {
+        id: 'sec-prepour-site',
+        name: 'Site Readiness',
+        items: [
+          { id: 'i4', text: 'Vapor barrier intact and taped', required: true, requiresPhoto: true },
+          {
+            id: 'i5',
+            text: 'Weather protection plan in place',
+            required: false,
+            requiresPhoto: false,
+            notes: 'Only required if rain is forecast within 24 hours.',
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'tmpl-cl-punchlist-draft',
+    name: 'Punch List Walkthrough (Draft)',
+    trade: 'General',
+    description: 'Working draft for a standard pre-closeout punch list walkthrough.',
+    createdBy: 'mgr-sarah',
+    createdAt: '2026-07-15T09:00:00Z',
+    updatedAt: '2026-07-20T09:00:00Z',
+    visibility: 'private',
+    archived: false,
+    sections: [
+      {
+        id: 'sec-punch-interior',
+        name: 'Interior',
+        items: [
+          { id: 'i1', text: 'Paint touch-ups complete', required: false, requiresPhoto: false },
+          { id: 'i2', text: 'Trim and hardware installed', required: false, requiresPhoto: false },
+          { id: 'i3', text: 'Flooring free of damage', required: true, requiresPhoto: true },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'tmpl-cl-framing-legacy',
+    name: 'Residential Rough Framing (Legacy)',
+    trade: 'Carpentry',
+    description: 'Superseded by the current Framing Inspection Checklist — kept for reference only.',
+    createdBy: 'mgr-daniel',
+    createdAt: '2024-06-01T09:00:00Z',
+    updatedAt: '2024-11-02T09:00:00Z',
+    visibility: 'company',
+    archived: true,
+    sections: [
+      {
+        id: 'sec-legacy-framing',
+        name: 'Framing',
+        items: [
+          { id: 'i1', text: 'Wall layout matches plan', required: true, requiresPhoto: false },
+          { id: 'i2', text: 'Rough openings sized correctly', required: false, requiresPhoto: false },
+        ],
+      },
     ],
   },
 ];

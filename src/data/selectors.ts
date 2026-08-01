@@ -100,6 +100,12 @@ export function checklistRecordsForTemplate(templateId: string) {
   return JOB_CHECKLISTS.filter((c) => c.templateId === templateId);
 }
 
+export function lastUsedAtForChecklistTemplate(templateId: string): string | undefined {
+  const records = checklistRecordsForTemplate(templateId);
+  if (records.length === 0) return undefined;
+  return records.reduce((latest, r) => (r.generatedAt > latest ? r.generatedAt : latest), records[0].generatedAt);
+}
+
 export function hazardRecordsForTemplate(templateId: string) {
   return JOB_HAZARD_ASSESSMENTS.filter((h) => h.templateId === templateId);
 }

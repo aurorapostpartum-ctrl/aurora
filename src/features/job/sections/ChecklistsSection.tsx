@@ -5,6 +5,7 @@ import { Platform, Pressable, StyleSheet, View } from 'react-native';
 
 import { Button, EmptyState, SelectModal, StatusBadge, Text } from '../../../components/ui';
 import { CHECKLIST_TEMPLATES } from '../../../data/company';
+import { flattenChecklistTemplateSections } from '../../../data/mockStore';
 import { formatDate, personName } from '../../../data/selectors';
 import { createId } from '../../../lib/id';
 import { colors, radius, spacing } from '../../../theme';
@@ -30,6 +31,10 @@ export function ChecklistsSection({ job, person, checklists, setChecklists }: Ch
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [templatePickerOpen, setTemplatePickerOpen] = useState(false);
 
+  const availableTemplates = CHECKLIST_TEMPLATES.filter(
+    (t) => !t.archived && (t.visibility === 'company' || t.createdBy === person.id)
+  );
+
   const handleGenerate = (templateId: string) => {
     const template = CHECKLIST_TEMPLATES.find((t) => t.id === templateId);
     if (!template) return;
@@ -45,7 +50,7 @@ export function ChecklistsSection({ job, person, checklists, setChecklists }: Ch
       generatedBy: person.id,
       generatedAt: now.toISOString(),
       status: 'in_progress',
-      items: template.items.map((item) => ({ id: item.id, text: item.text, status: 'pending' })),
+      items: flattenChecklistTemplateSections(template.sections),
     };
 
     setChecklists((prev) => [record, ...prev]);
@@ -127,22 +132,39 @@ export function ChecklistsSection({ job, person, checklists, setChecklists }: Ch
 
               {expanded ? (
                 <View style={styles.itemList}>
-                  {c.items.map((item) => {
+                  {c.items.map((item, index) => {
                     const meta = ITEM_STATUS_META[item.status];
+                    const showSectionHeader = item.sectionName && item.sectionName !== c.items[index - 1]?.sectionName;
                     return (
-                      <Pressable
-                        key={item.id}
-                        style={styles.itemRow}
-                        onPress={() => cycleItemStatus(c.id, item.id)}
-                      >
-                        <Ionicons name={meta.icon} size={18} color={meta.color} />
-                        <Text variant="body" style={styles.itemText}>
-                          {item.text}
-                        </Text>
-                        <Text variant="caption1" color={meta.color}>
-                          {meta.label}
-                        </Text>
-                      </Pressable>
+                      <View key={item.id}>
+                        {showSectionHeader ? (
+                          <Text variant="caption1" color={colors.textTertiary} style={styles.sectionHeader}>
+                            {item.sectionName!.toUpperCase()}
+                          </Text>
+                        ) : null}
+                        <Pressable style={styles.itemRow} onPress={() => cycleItemStatus(c.id, item.id)}>
+                          <Ionicons name={meta.icon} size={18} color={meta.color} />
+                          <View style={styles.itemTextWrap}>
+                            <Text variant="body">{item.text}</Text>
+                            {item.note ? (
+                              <Text variant="caption1" color={colors.textTertiary}>
+                                {item.note}
+                              </Text>
+                            ) : null}
+                          </View>
+                          {item.requiresPhoto ? (
+                            <Ionicons name="camera-outline" size={14} color={colors.textTertiary} style={styles.itemFlagIcon} />
+                          ) : null}
+                          {item.required ? (
+                            <Text variant="caption2" color={colors.warning} style={styles.itemFlagIcon}>
+                              Required
+                            </Text>
+                          ) : null}
+                          <Text variant="caption1" color={meta.color}>
+                            {meta.label}
+                          </Text>
+                        </Pressable>
+                      </View>
                     );
                   })}
                   <Text variant="caption2" color={colors.textTertiary} style={styles.tapHint}>
@@ -158,7 +180,7 @@ export function ChecklistsSection({ job, person, checklists, setChecklists }: Ch
       <SelectModal
         visible={templatePickerOpen}
         title="Generate Checklist"
-        options={CHECKLIST_TEMPLATES.map((t) => ({ label: `${t.name} · ${t.trade}`, value: t.id }))}
+        options={availableTemplates.map((t) => ({ label: `${t.name} · ${t.trade}`, value: t.id }))}
         selectedValue={null}
         onSelect={handleGenerate}
         onClose={() => setTemplatePickerOpen(false)}
@@ -210,10 +232,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: spacing.xs + 2,
   },
-  itemText: {
+  itemTextWrap: {
     flex: 1,
     marginLeft: spacing.sm,
     marginRight: spacing.sm,
+  },
+  itemFlagIcon: {
+    marginRight: spacing.xs,
+  },
+  sectionHeader: {
+    marginTop: spacing.sm,
+    marginBottom: spacing.xxs,
+    letterSpacing: 1,
   },
   tapHint: {
     marginTop: spacing.xs,

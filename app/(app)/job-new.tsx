@@ -233,7 +233,9 @@ function NewJobContent() {
             Generates a job-specific checklist from each template you select.
           </Text>
           <View style={styles.chipRow}>
-            {CHECKLIST_TEMPLATES.map((template) => (
+            {CHECKLIST_TEMPLATES.filter(
+              (template) => !template.archived && (template.visibility === 'company' || template.createdBy === person?.id)
+            ).map((template) => (
               <Chip
                 key={template.id}
                 label={template.name}

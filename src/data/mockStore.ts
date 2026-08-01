@@ -13,12 +13,16 @@ import { demoNow, formatDate } from './selectors';
 import { createId } from '../lib/id';
 import type {
   ActivityType,
+  ChecklistItem,
+  ChecklistTemplate,
+  ChecklistTemplateSection,
   DocumentCategory,
   DocumentFileType,
   Job,
   JobDocument,
   JobStatus,
   ProjectType,
+  TemplateVisibility,
 } from '../types/domain';
 
 // SiteVault's data is a seeded, in-memory dataset (see company.ts) rather
@@ -108,7 +112,7 @@ export function createJob(input: CreateJobInput): Job {
       generatedBy: input.managerId,
       generatedAt: now,
       status: 'in_progress',
-      items: template.items.map((item) => ({ id: item.id, text: item.text, status: 'pending' })),
+      items: flattenChecklistTemplateSections(template.sections),
     });
     ACTIVITY.unshift({
       id: createId('act'),
@@ -366,6 +370,146 @@ export function markDocumentReviewed(documentId: string, personId: string): JobD
     createdAt: demoNow().toISOString(),
     summary: `Reviewed ${doc.title} (Rev ${current.revisionNumber})`,
   });
+  emitChange();
+  return updated;
+}
+
+/**
+ * A generated JobChecklist keeps a flat item list (its own independent copy,
+ * per-item pass/fail status) rather than the template's nested sections —
+ * this is where a template's structure turns into a real, working record.
+ */
+export function flattenChecklistTemplateSections(sections: ChecklistTemplateSection[]): ChecklistItem[] {
+  const items: ChecklistItem[] = [];
+  for (const section of sections) {
+    for (const item of section.items) {
+      items.push({
+        id: item.id,
+        text: item.text,
+        status: 'pending',
+        sectionName: section.name,
+        required: item.required,
+        requiresPhoto: item.requiresPhoto,
+      });
+    }
+  }
+  return items;
+}
+
+export interface ChecklistTemplateSectionInput {
+  name: string;
+  items: {
+    text: string;
+    required: boolean;
+    requiresPhoto: boolean;
+    notes?: string;
+  }[];
+}
+
+export interface CreateChecklistTemplateInput {
+  name: string;
+  trade: string;
+  description: string;
+  sections: ChecklistTemplateSectionInput[];
+  createdBy: string;
+  visibility: TemplateVisibility;
+}
+
+function buildSections(sections: ChecklistTemplateSectionInput[]): ChecklistTemplateSection[] {
+  return sections
+    .filter((s) => s.items.length > 0)
+    .map((section) => ({
+      id: createId('sec'),
+      name: section.name.trim() || 'Untitled Section',
+      items: section.items
+        .filter((i) => i.text.trim().length > 0)
+        .map((item) => ({
+          id: createId('item'),
+          text: item.text.trim(),
+          required: item.required,
+          requiresPhoto: item.requiresPhoto,
+          notes: item.notes?.trim() || undefined,
+        })),
+    }));
+}
+
+export function createChecklistTemplate(input: CreateChecklistTemplateInput): ChecklistTemplate {
+  const now = demoNow().toISOString();
+  const template: ChecklistTemplate = {
+    id: createId('tmpl-cl'),
+    name: input.name.trim(),
+    trade: input.trade.trim() || 'General',
+    description: input.description.trim(),
+    sections: buildSections(input.sections),
+    createdBy: input.createdBy,
+    createdAt: now,
+    updatedAt: now,
+    visibility: input.visibility,
+    archived: false,
+  };
+  CHECKLIST_TEMPLATES.unshift(template);
+  emitChange();
+  return template;
+}
+
+export interface UpdateChecklistTemplateInput {
+  name: string;
+  trade: string;
+  description: string;
+  sections: ChecklistTemplateSectionInput[];
+  visibility: TemplateVisibility;
+}
+
+export function updateChecklistTemplate(
+  templateId: string,
+  input: UpdateChecklistTemplateInput
+): ChecklistTemplate | undefined {
+  const index = CHECKLIST_TEMPLATES.findIndex((t) => t.id === templateId);
+  if (index === -1) return undefined;
+
+  const updated: ChecklistTemplate = {
+    ...CHECKLIST_TEMPLATES[index],
+    name: input.name.trim(),
+    trade: input.trade.trim() || 'General',
+    description: input.description.trim(),
+    sections: buildSections(input.sections),
+    visibility: input.visibility,
+    updatedAt: demoNow().toISOString(),
+  };
+  CHECKLIST_TEMPLATES[index] = updated;
+  emitChange();
+  return updated;
+}
+
+export function duplicateChecklistTemplate(templateId: string, actorId: string): ChecklistTemplate | undefined {
+  const source = CHECKLIST_TEMPLATES.find((t) => t.id === templateId);
+  if (!source) return undefined;
+
+  return createChecklistTemplate({
+    name: `${source.name} (Copy)`,
+    trade: source.trade,
+    description: source.description,
+    sections: source.sections.map((section) => ({
+      name: section.name,
+      items: section.items.map((item) => ({
+        text: item.text,
+        required: item.required,
+        requiresPhoto: item.requiresPhoto,
+        notes: item.notes,
+      })),
+    })),
+    createdBy: actorId,
+    // A duplicate starts private — the author decides if/when to publish it company-wide.
+    visibility: 'private',
+  });
+}
+
+export function setChecklistTemplateArchived(templateId: string, archived: boolean): ChecklistTemplate | undefined {
+  const index = CHECKLIST_TEMPLATES.findIndex((t) => t.id === templateId);
+  if (index === -1) return undefined;
+
+  const updated: ChecklistTemplate = { ...CHECKLIST_TEMPLATES[index], archived, updatedAt: demoNow().toISOString() };
+  CHECKLIST_TEMPLATES[index] = updated;
   emitChange();
   return updated;
 }

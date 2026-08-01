@@ -74,21 +74,39 @@ export interface ChecklistItem {
   text: string;
   status: ChecklistItemStatus;
   note?: string;
+  /** Carried over from the template at generation time — older generated records may predate this metadata. */
+  sectionName?: string;
+  required?: boolean;
+  requiresPhoto?: boolean;
 }
 
 export interface ChecklistTemplateItem {
   id: string;
   text: string;
+  required: boolean;
+  requiresPhoto: boolean;
+  notes?: string;
 }
+
+export interface ChecklistTemplateSection {
+  id: string;
+  name: string;
+  items: ChecklistTemplateItem[];
+}
+
+export type TemplateVisibility = 'company' | 'private';
 
 export interface ChecklistTemplate {
   id: string;
   name: string;
   trade: string;
   description: string;
-  items: ChecklistTemplateItem[];
+  sections: ChecklistTemplateSection[];
   createdBy: string;
+  createdAt: string;
   updatedAt: string;
+  visibility: TemplateVisibility;
+  archived: boolean;
 }
 
 export type RecordStatus = 'in_progress' | 'completed';

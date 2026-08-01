@@ -1,17 +1,33 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
+import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { EmptyState, GlassCard, Screen, StatusBadge, Text } from '../../../src/components/ui';
-import { CHECKLIST_TEMPLATES } from '../../../src/data/company';
-import { checklistRecordsForTemplate, formatDate, getJob, personName } from '../../../src/data/selectors';
-import { colors, spacing } from '../../../src/theme';
+import { useMockDataVersion } from '../../../src/data/mockStore';
+import { checklistRecordsForTemplate, formatDate, getChecklistTemplate, getJob, personName } from '../../../src/data/selectors';
+import { totalItems } from '../../../src/features/templates/checklistTemplateMeta';
+import { TemplateActionsSheet } from '../../../src/features/templates/TemplateActionsSheet';
+import { RoleGate } from '../../../src/navigation/RoleGate';
+import { useAuth } from '../../../src/providers/AuthProvider';
+import { colors, radius, spacing } from '../../../src/theme';
 
 export default function ChecklistTemplateScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const template = CHECKLIST_TEMPLATES.find((t) => t.id === id);
+  return (
+    <RoleGate allow={['manager']}>
+      <ChecklistTemplateContent />
+    </RoleGate>
+  );
+}
 
-  if (!template) {
+function ChecklistTemplateContent() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const { person } = useAuth();
+  useMockDataVersion();
+  const template = getChecklistTemplate(id);
+  const [actionsOpen, setActionsOpen] = useState(false);
+
+  if (!template || !person) {
     return (
       <Screen glow={false}>
         <EmptyState icon="checkbox-outline" title="Template not found" />
@@ -20,6 +36,7 @@ export default function ChecklistTemplateScreen() {
   }
 
   const records = checklistRecordsForTemplate(template.id);
+  const itemCount = totalItems(template);
 
   return (
     <Screen glow={false}>
@@ -27,37 +44,89 @@ export default function ChecklistTemplateScreen() {
         <Pressable onPress={() => router.back()} hitSlop={12} style={styles.backButton}>
           <Ionicons name="chevron-back" size={22} color={colors.textPrimary} />
         </Pressable>
+        <Pressable onPress={() => setActionsOpen(true)} hitSlop={12} style={styles.moreButton}>
+          <Ionicons name="ellipsis-horizontal" size={20} color={colors.textPrimary} />
+        </Pressable>
       </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.inner}>
-          <StatusBadge label={template.trade} tone="accent" />
+          {template.archived ? (
+            <View style={styles.archivedBanner}>
+              <Ionicons name="archive-outline" size={16} color={colors.textSecondary} />
+              <Text variant="footnote" color={colors.textSecondary} style={styles.archivedBannerText}>
+                This template is archived. It won't appear when generating a checklist on a job.
+              </Text>
+            </View>
+          ) : null}
+
+          <View style={styles.badgeRow}>
+            <StatusBadge label={template.trade} tone="accent" />
+            {template.visibility === 'private' ? <StatusBadge label="Private" tone="neutral" /> : null}
+          </View>
           <Text variant="title1" style={styles.title}>
             {template.name}
           </Text>
-          <Text variant="body" color={colors.textSecondary} style={styles.description}>
-            {template.description}
-          </Text>
+          {template.description ? (
+            <Text variant="body" color={colors.textSecondary} style={styles.description}>
+              {template.description}
+            </Text>
+          ) : null}
           <Text variant="caption1" color={colors.textTertiary}>
-            Updated {formatDate(template.updatedAt)} by {personName(template.createdBy)}
+            {itemCount} item{itemCount === 1 ? '' : 's'} · Updated {formatDate(template.updatedAt)} by{' '}
+            {personName(template.createdBy)} · Used {records.length} time{records.length === 1 ? '' : 's'}
           </Text>
 
+          <View style={styles.actionRow}>
+            <Pressable
+              style={styles.actionButton}
+              onPress={() => router.push(`/(app)/checklist-template-edit/${template.id}` as never)}
+            >
+              <Ionicons name="pencil-outline" size={15} color={colors.textPrimary} />
+              <Text variant="subhead" style={styles.actionLabel}>
+                Edit
+              </Text>
+            </Pressable>
+            <Pressable style={styles.actionButton} onPress={() => setActionsOpen(true)}>
+              <Ionicons name="ellipsis-horizontal-outline" size={15} color={colors.textPrimary} />
+              <Text variant="subhead" style={styles.actionLabel}>
+                More
+              </Text>
+            </Pressable>
+          </View>
+
           <Text variant="caption1" color={colors.textTertiary} style={styles.sectionLabel}>
-            CHECKLIST ITEMS ({template.items.length})
+            CHECKLIST ({itemCount} ITEM{itemCount === 1 ? '' : 'S'})
           </Text>
-          <GlassCard style={styles.card}>
-            {template.items.map((item, index) => (
-              <View key={item.id}>
-                <View style={styles.itemRow}>
-                  <Ionicons name="checkbox-outline" size={16} color={colors.textTertiary} />
-                  <Text variant="body" style={styles.itemText}>
-                    {item.text}
-                  </Text>
-                </View>
-                {index < template.items.length - 1 ? <View style={styles.divider} /> : null}
-              </View>
-            ))}
-          </GlassCard>
+          {template.sections.map((section) => (
+            <View key={section.id} style={styles.sectionBlock}>
+              <Text variant="footnote" color={colors.textTertiary} style={styles.sectionName}>
+                {section.name.toUpperCase()}
+              </Text>
+              <GlassCard style={styles.card}>
+                {section.items.map((item, index) => (
+                  <View key={item.id}>
+                    <View style={styles.itemRow}>
+                      <Ionicons name="square-outline" size={16} color={colors.textTertiary} />
+                      <View style={styles.itemTextWrap}>
+                        <Text variant="body">{item.text}</Text>
+                        {item.notes ? (
+                          <Text variant="caption1" color={colors.textTertiary} style={styles.itemNotes}>
+                            {item.notes}
+                          </Text>
+                        ) : null}
+                      </View>
+                      <View style={styles.itemFlags}>
+                        {item.required ? <StatusBadge label="Required" tone="warning" /> : null}
+                        {item.requiresPhoto ? <Ionicons name="camera-outline" size={16} color={colors.textSecondary} /> : null}
+                      </View>
+                    </View>
+                    {index < section.items.length - 1 ? <View style={styles.divider} /> : null}
+                  </View>
+                ))}
+              </GlassCard>
+            </View>
+          ))}
 
           <Text variant="caption1" color={colors.textTertiary} style={styles.sectionLabel}>
             GENERATED FOR JOBS ({records.length})
@@ -103,21 +172,41 @@ export default function ChecklistTemplateScreen() {
           )}
 
           <Text variant="footnote" color={colors.textTertiary} style={styles.footnote}>
-            This template stays unchanged. Employees generate a job-specific copy from it inside a
-            Job Folder, and the completed record lives permanently with that job.
+            This template stays unchanged. Managers generate a job-specific copy from it inside a Job Folder, and
+            the completed record lives permanently with that job.
           </Text>
         </View>
       </ScrollView>
+
+      <TemplateActionsSheet
+        visible={actionsOpen}
+        onClose={() => setActionsOpen(false)}
+        template={template}
+        actorId={person.id}
+      />
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
   header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: spacing.lg,
     marginBottom: spacing.xs,
   },
   backButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.surface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.surfaceBorder,
+  },
+  moreButton: {
     width: 36,
     height: 36,
     borderRadius: 18,
@@ -136,6 +225,25 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 640,
   },
+  archivedBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: spacing.sm,
+    borderRadius: radius.md,
+    backgroundColor: colors.surface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.surfaceBorder,
+    marginBottom: spacing.md,
+    gap: spacing.xs,
+  },
+  archivedBannerText: {
+    flex: 1,
+  },
+  badgeRow: {
+    flexDirection: 'row',
+    gap: spacing.xs,
+    marginTop: spacing.sm,
+  },
   title: {
     marginTop: spacing.sm,
     marginBottom: spacing.xs,
@@ -143,23 +251,59 @@ const styles = StyleSheet.create({
   description: {
     marginBottom: spacing.sm,
   },
+  actionRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginTop: spacing.md,
+  },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 36,
+    paddingHorizontal: spacing.md,
+    borderRadius: 18,
+    backgroundColor: colors.surface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.surfaceBorder,
+  },
+  actionLabel: {
+    marginLeft: spacing.xs,
+  },
   sectionLabel: {
     marginTop: spacing.lg,
     marginBottom: spacing.xs,
     marginLeft: spacing.xxs,
+    letterSpacing: 1,
+  },
+  sectionBlock: {
+    marginBottom: spacing.md,
+  },
+  sectionName: {
+    marginBottom: spacing.xs,
+    marginLeft: spacing.xxs,
+    letterSpacing: 1,
   },
   card: {
     marginBottom: spacing.sm,
   },
   itemRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm + 2,
   },
-  itemText: {
+  itemTextWrap: {
     marginLeft: spacing.sm,
     flex: 1,
+    marginRight: spacing.sm,
+  },
+  itemNotes: {
+    marginTop: 2,
+  },
+  itemFlags: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
   },
   divider: {
     height: StyleSheet.hairlineWidth,
