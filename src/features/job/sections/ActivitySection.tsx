@@ -21,6 +21,7 @@ const ACTIVITY_ICON: Record<ActivityType, keyof typeof Ionicons.glyphMap> = {
   announcement_posted: 'megaphone-outline',
   job_created: 'folder-open-outline',
   job_completed: 'ribbon-outline',
+  employee_assigned: 'person-add-outline',
 };
 
 export function ActivitySection({ activity }: { activity: ActivityEntry[] }) {

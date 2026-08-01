@@ -3,8 +3,9 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
-import { Avatar, EmptyState, ProgressBar, Screen, SegmentedControl, StatusBadge, Text } from '../../../src/components/ui';
-import { useMockDataVersion } from '../../../src/data/mockStore';
+import { Avatar, EmptyState, ProgressBar, Screen, StatusBadge, Text } from '../../../src/components/ui';
+import { useMockDataVersion, recordActivity } from '../../../src/data/mockStore';
+import { useBreakpoint } from '../../../src/hooks/useBreakpoint';
 import {
   activityForJob,
   checklistsForJob,
@@ -18,6 +19,9 @@ import {
   announcementsForJob,
   photosForJob,
 } from '../../../src/data/selectors';
+import { AddEmployeeSheet } from '../../../src/features/job/AddEmployeeSheet';
+import { JobMoreActionsSheet } from '../../../src/features/job/JobMoreActionsSheet';
+import { UploadDocumentSheet } from '../../../src/features/job/UploadDocumentSheet';
 import { AnnouncementsSection } from '../../../src/features/job/sections/AnnouncementsSection';
 import { ChecklistsSection } from '../../../src/features/job/sections/ChecklistsSection';
 import { CompletionSection } from '../../../src/features/job/sections/CompletionSection';
@@ -53,30 +57,44 @@ type SectionKey =
   | 'activity'
   | 'completion';
 
-const SECTIONS: { value: SectionKey; label: string }[] = [
-  { value: 'overview', label: 'Overview' },
-  { value: 'documents', label: 'Documents & Prints' },
-  { value: 'checklists', label: 'Checklists' },
-  { value: 'hazards', label: 'Hazard Assessments' },
-  { value: 'photos', label: 'Photos' },
-  { value: 'deficiencies', label: 'Deficiencies' },
-  { value: 'notes', label: 'Notes' },
-  { value: 'announcements', label: 'Announcements' },
-  { value: 'activity', label: 'Activity History' },
-  { value: 'completion', label: 'Project Completion' },
-];
+const SECTION_LABEL: Record<SectionKey, string> = {
+  overview: 'Job Folder',
+  documents: 'Documents & Prints',
+  checklists: 'Checklists',
+  hazards: 'Hazard Assessments',
+  photos: 'Photos',
+  deficiencies: 'Deficiencies',
+  notes: 'Notes',
+  announcements: 'Announcements',
+  activity: 'Activity History',
+  completion: 'Project Completion',
+};
+
+// Deficiencies and Project Completion are management concerns — employees
+// don't get a card for them on the home grid, and can't reach them by deep
+// link (search, a stale URL, etc.) either.
+const MANAGER_ONLY_SECTIONS = new Set<SectionKey>(['deficiencies', 'completion']);
 
 export default function JobDetailScreen() {
   const { id, section } = useLocalSearchParams<{ id: string; section?: string }>();
   const { person } = useAuth();
+  const { isMobile } = useBreakpoint();
   useMockDataVersion();
   const job = getJob(id);
 
+  const isManager = person?.role === 'manager';
+  const requestedSection = section as SectionKey | undefined;
+  const sectionAllowed =
+    requestedSection &&
+    SECTION_LABEL[requestedSection] &&
+    (isManager || !MANAGER_ONLY_SECTIONS.has(requestedSection));
+
   const [activeSection, setActiveSection] = useState<SectionKey>(
-    (section as SectionKey) && SECTIONS.some((s) => s.value === section)
-      ? (section as SectionKey)
-      : 'overview'
+    sectionAllowed ? (requestedSection as SectionKey) : 'overview'
   );
+  const [addEmployeeOpen, setAddEmployeeOpen] = useState(false);
+  const [uploadDocOpen, setUploadDocOpen] = useState(false);
+  const [moreActionsOpen, setMoreActionsOpen] = useState(false);
 
   const [documents, setDocuments] = useState<JobDocument[]>(() => (job ? documentsForJob(job.id) : []));
   const [checklists, setChecklists] = useState<JobChecklist[]>(() => (job ? checklistsForJob(job.id) : []));
@@ -105,31 +123,62 @@ export default function JobDetailScreen() {
     );
   }
 
-  const isManager = person.role === 'manager';
   const openDeficiencyCount = deficiencies.filter((d) => d.status !== 'resolved').length;
   const jobPeople = [...job.managerIds, ...job.employeeIds]
     .map((pid) => getPerson(pid))
     .filter((p): p is NonNullable<typeof p> => Boolean(p))
     .slice(0, 5);
 
+  const totalCompletionItems =
+    checklists.reduce((sum, c) => sum + c.items.length, 0) + hazards.reduce((sum, h) => sum + h.hazards.length, 0);
+  const doneCompletionItems =
+    checklists.reduce((sum, c) => sum + c.items.filter((i) => i.status !== 'pending').length, 0) +
+    hazards.reduce((sum, h) => sum + h.hazards.filter((x) => x.acknowledged).length, 0);
+
+  const handleUploadDocument = (document: JobDocument) => {
+    setDocuments((prev) => [document, ...prev]);
+    recordActivity({
+      jobId: job.id,
+      type: 'document_uploaded',
+      actorId: person.id,
+      summary: `Uploaded ${document.title}`,
+    });
+  };
+
   return (
     <Screen glow={false}>
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} hitSlop={12} style={styles.backButton}>
-          <Ionicons name="chevron-back" size={22} color={colors.textPrimary} />
+          <Ionicons name="chevron-back" size={20} color={colors.textPrimary} />
+          <Text variant="subhead" color={colors.textPrimary} style={styles.backLabel}>
+            Jobs
+          </Text>
         </Pressable>
-        {isManager ? (
-          <Pressable
-            onPress={() => router.push(`/(app)/job-edit/${job.id}` as never)}
-            hitSlop={12}
-            style={styles.editButton}
-          >
-            <Ionicons name="pencil" size={16} color={colors.textPrimary} />
-            <Text variant="subhead" color={colors.textPrimary} style={styles.editButtonLabel}>
-              Edit Job
-            </Text>
-          </Pressable>
-        ) : null}
+
+        <View style={styles.actionsRow}>
+          {isManager ? (
+            <>
+              <HeaderAction
+                icon="pencil-outline"
+                label="Edit Job"
+                showLabel={!isMobile}
+                onPress={() => router.push(`/(app)/job-edit/${job.id}` as never)}
+              />
+              <HeaderAction
+                icon="person-add-outline"
+                label="Add Employee"
+                showLabel={!isMobile}
+                onPress={() => setAddEmployeeOpen(true)}
+              />
+            </>
+          ) : null}
+          <HeaderAction icon="cloud-upload-outline" label="Upload" showLabel onPress={() => setUploadDocOpen(true)} />
+          {isManager ? (
+            <Pressable onPress={() => setMoreActionsOpen(true)} hitSlop={10} style={styles.moreButton}>
+              <Ionicons name="ellipsis-horizontal" size={18} color={colors.textPrimary} />
+            </Pressable>
+          ) : null}
+        </View>
       </View>
 
       <View style={styles.folderHeaderWrap}>
@@ -170,9 +219,23 @@ export default function JobDetailScreen() {
               fillColor={job.tabColor}
               style={styles.progress}
             />
+            <View style={styles.progressStatsRow}>
+              <Text variant="title2" color={colors.ink}>
+                {job.progress}%
+              </Text>
+              <Text variant="footnote" color={colors.inkSecondary} style={styles.progressLabel}>
+                complete
+              </Text>
+            </View>
+            {totalCompletionItems > 0 ? (
+              <Text variant="footnote" color={colors.inkSecondary} style={styles.completionItemsLabel}>
+                {doneCompletionItems} of {totalCompletionItems} completion items complete
+              </Text>
+            ) : null}
+
             <View style={styles.folderBottomRow}>
               <Text variant="caption1" color={colors.inkTertiary}>
-                {job.progress}% complete · Target {formatShort(job.targetCompletionDate)}
+                Target {formatShort(job.targetCompletionDate)}
               </Text>
               <View style={styles.avatarStack}>
                 {jobPeople.map((p, index) => (
@@ -190,13 +253,17 @@ export default function JobDetailScreen() {
         </View>
       </View>
 
-      <View style={styles.segmentWrap}>
-        <SegmentedControl
-          options={SECTIONS}
-          value={activeSection}
-          onChange={(v) => setActiveSection(v as SectionKey)}
-        />
-      </View>
+      {activeSection !== 'overview' ? (
+        <View style={styles.sectionHeaderWrap}>
+          <Pressable onPress={() => setActiveSection('overview')} style={styles.sectionBackButton}>
+            <Ionicons name="chevron-back" size={16} color={colors.accentStrong} />
+            <Text variant="subhead" color={colors.accentStrong} style={styles.sectionBackLabel}>
+              Job Folder
+            </Text>
+          </Pressable>
+          <Text variant="title3">{SECTION_LABEL[activeSection]}</Text>
+        </View>
+      ) : null}
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.inner}>
@@ -204,10 +271,15 @@ export default function JobDetailScreen() {
             <OverviewSection
               job={job}
               person={person}
+              documents={documents}
               checklists={checklists}
               hazards={hazards}
+              photos={photos}
               deficiencies={deficiencies}
+              completion={completion}
+              notes={notes}
               announcements={announcements}
+              activity={activity}
               onJump={(s) => setActiveSection(s as SectionKey)}
             />
           ) : null}
@@ -232,7 +304,7 @@ export default function JobDetailScreen() {
           {activeSection === 'photos' ? (
             <PhotosSection photos={photos} setPhotos={setPhotos} job={job} person={person} />
           ) : null}
-          {activeSection === 'deficiencies' ? (
+          {activeSection === 'deficiencies' && isManager ? (
             <DeficienciesSection
               job={job}
               person={person}
@@ -252,7 +324,7 @@ export default function JobDetailScreen() {
             />
           ) : null}
           {activeSection === 'activity' ? <ActivitySection activity={activity} /> : null}
-          {activeSection === 'completion' ? (
+          {activeSection === 'completion' && isManager ? (
             <CompletionSection
               job={job}
               isManager={isManager}
@@ -263,7 +335,68 @@ export default function JobDetailScreen() {
           ) : null}
         </View>
       </ScrollView>
+
+      {isManager ? (
+        <>
+          <AddEmployeeSheet
+            visible={addEmployeeOpen}
+            onClose={() => setAddEmployeeOpen(false)}
+            job={job}
+            actorId={person.id}
+          />
+          <JobMoreActionsSheet
+            visible={moreActionsOpen}
+            onClose={() => setMoreActionsOpen(false)}
+            job={job}
+            actorId={person.id}
+            onEditJob={() => {
+              setMoreActionsOpen(false);
+              router.push(`/(app)/job-edit/${job.id}` as never);
+            }}
+            onAddEmployee={() => {
+              setMoreActionsOpen(false);
+              setAddEmployeeOpen(true);
+            }}
+          />
+        </>
+      ) : null}
+
+      <UploadDocumentSheet
+        visible={uploadDocOpen}
+        onClose={() => setUploadDocOpen(false)}
+        jobId={job.id}
+        uploadedBy={person.id}
+        onUpload={handleUploadDocument}
+      />
     </Screen>
+  );
+}
+
+function HeaderAction({
+  icon,
+  label,
+  onPress,
+  showLabel,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  onPress: () => void;
+  showLabel: boolean;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      hitSlop={8}
+      style={[styles.headerAction, !showLabel && styles.headerActionIconOnly]}
+      accessibilityLabel={label}
+    >
+      <Ionicons name={icon} size={16} color={colors.textPrimary} />
+      {showLabel ? (
+        <Text variant="subhead" color={colors.textPrimary} style={styles.headerActionLabel} numberOfLines={1}>
+          {label}
+        </Text>
+      ) : null}
+    </Pressable>
   );
 }
 
@@ -277,9 +410,29 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: spacing.lg,
-    marginBottom: spacing.xs,
+    marginBottom: spacing.md,
+    flexWrap: 'wrap',
+    gap: spacing.sm,
   },
-  editButton: {
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 36,
+    paddingHorizontal: spacing.sm,
+    borderRadius: 18,
+    backgroundColor: colors.surface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.surfaceBorder,
+  },
+  backLabel: {
+    marginLeft: 2,
+  },
+  actionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  headerAction: {
     flexDirection: 'row',
     alignItems: 'center',
     height: 36,
@@ -289,10 +442,15 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.surfaceBorder,
   },
-  editButtonLabel: {
+  headerActionIconOnly: {
+    width: 36,
+    paddingHorizontal: 0,
+    justifyContent: 'center',
+  },
+  headerActionLabel: {
     marginLeft: spacing.xs,
   },
-  backButton: {
+  moreButton: {
     width: 36,
     height: 36,
     borderRadius: 18,
@@ -352,7 +510,18 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   progress: {
-    marginBottom: spacing.xs,
+    marginBottom: spacing.sm,
+  },
+  progressStatsRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+  },
+  progressLabel: {
+    marginLeft: spacing.xs,
+  },
+  completionItemsLabel: {
+    marginTop: 2,
+    marginBottom: spacing.md,
   },
   folderBottomRow: {
     flexDirection: 'row',
@@ -371,9 +540,21 @@ const styles = StyleSheet.create({
   avatarFirst: {
     marginLeft: 0,
   },
-  segmentWrap: {
+  sectionHeaderWrap: {
     paddingHorizontal: spacing.lg,
+    alignItems: 'center',
     marginBottom: spacing.md,
+  },
+  sectionBackButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    width: '100%',
+    maxWidth: 1040,
+    marginBottom: spacing.xs,
+  },
+  sectionBackLabel: {
+    marginLeft: 2,
   },
   content: {
     paddingHorizontal: spacing.lg,

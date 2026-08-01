@@ -202,7 +202,8 @@ export type ActivityType =
   | 'note_added'
   | 'announcement_posted'
   | 'job_created'
-  | 'job_completed';
+  | 'job_completed'
+  | 'employee_assigned';
 
 export interface ActivityEntry {
   id: string;

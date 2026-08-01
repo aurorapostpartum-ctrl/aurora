@@ -3,7 +3,7 @@ import { useSyncExternalStore } from 'react';
 import { ACTIVITY, CHECKLIST_TEMPLATES, HAZARD_TEMPLATES, JOBS, JOB_CHECKLISTS, JOB_HAZARD_ASSESSMENTS } from './company';
 import { demoNow, formatDate } from './selectors';
 import { createId } from '../lib/id';
-import type { Job, JobStatus, ProjectType } from '../types/domain';
+import type { ActivityType, Job, JobStatus, ProjectType } from '../types/domain';
 
 // SiteVault's data is a seeded, in-memory dataset (see company.ts) rather
 // than a live backend. Screens that need to reflect writes made through
@@ -171,4 +171,66 @@ export function updateJob(jobId: string, input: UpdateJobInput): Job | undefined
   JOBS[index] = updated;
   emitChange();
   return updated;
+}
+
+export function addEmployeesToJob(jobId: string, employeeIds: string[]): Job | undefined {
+  const index = JOBS.findIndex((j) => j.id === jobId);
+  if (index === -1) return undefined;
+
+  const existing = JOBS[index];
+  const updated: Job = {
+    ...existing,
+    employeeIds: [...new Set([...existing.employeeIds, ...employeeIds])],
+  };
+  JOBS[index] = updated;
+  emitChange();
+  return updated;
+}
+
+export function setJobStatus(jobId: string, status: JobStatus): Job | undefined {
+  const index = JOBS.findIndex((j) => j.id === jobId);
+  if (index === -1) return undefined;
+
+  const updated: Job = { ...JOBS[index], status };
+  JOBS[index] = updated;
+  emitChange();
+  return updated;
+}
+
+export function duplicateJob(jobId: string, managerId: string): Job | undefined {
+  const source = JOBS.find((j) => j.id === jobId);
+  if (!source) return undefined;
+
+  return createJob({
+    name: `${source.name} (Copy)`,
+    address: source.address,
+    client: source.client,
+    projectType: source.projectType,
+    startDate: demoNow().toISOString().slice(0, 10),
+    targetCompletionDate: source.targetCompletionDate,
+    description: source.description,
+    managerId,
+    employeeIds: [],
+    checklistTemplateIds: [],
+    hazardTemplateIds: [],
+  });
+}
+
+export interface RecordActivityInput {
+  jobId: string;
+  type: ActivityType;
+  actorId: string;
+  summary: string;
+}
+
+export function recordActivity(input: RecordActivityInput) {
+  ACTIVITY.unshift({
+    id: createId('act'),
+    jobId: input.jobId,
+    type: input.type,
+    actorId: input.actorId,
+    createdAt: demoNow().toISOString(),
+    summary: input.summary,
+  });
+  emitChange();
 }
