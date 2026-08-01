@@ -127,7 +127,9 @@ function TemplatesContent() {
                   value={libraryTab}
                   onChange={(v) => setLibraryTab(v as LibraryTab)}
                 />
-                <Chip label="Show Archived" selected={showArchived} onPress={() => setShowArchived((v) => !v)} />
+                {libraryTab !== 'recent' ? (
+                  <Chip label="Show Archived" selected={showArchived} onPress={() => setShowArchived((v) => !v)} />
+                ) : null}
               </View>
 
               {checklistTemplates.length === 0 ? (
@@ -208,7 +210,7 @@ function ChecklistTemplateCard({ template, onOpenActions }: { template: Checklis
                 {template.name}
               </Text>
               {template.archived ? <StatusBadge label="Archived" tone="neutral" /> : null}
-              {template.visibility === 'private' ? <StatusBadge label="Private" tone="accent" /> : null}
+              {template.visibility === 'private' ? <StatusBadge label="Private" tone="neutral" /> : null}
             </View>
             <View style={styles.metaRow}>
               <StatusBadge label={template.trade} tone="neutral" />

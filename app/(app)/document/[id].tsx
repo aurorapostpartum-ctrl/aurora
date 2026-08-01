@@ -227,13 +227,13 @@ function DocumentViewerContent() {
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.toolbarScroll} contentContainerStyle={styles.toolbar}>
         <View style={styles.toolbarGroup}>
-          <ToolbarButton icon="remove" onPress={handleZoomOut} accessibilityLabel="Zoom out" />
+          <ToolbarButton icon="remove" onPress={handleZoomOut} disabled={scale <= ZOOM_MIN} accessibilityLabel="Zoom out" />
           <Pressable onPress={handleZoomReset} hitSlop={8}>
             <Text variant="footnote" color={colors.textSecondary} style={styles.zoomLabel}>
               {Math.round(scale * 100)}%
             </Text>
           </Pressable>
-          <ToolbarButton icon="add" onPress={handleZoomIn} accessibilityLabel="Zoom in" />
+          <ToolbarButton icon="add" onPress={handleZoomIn} disabled={scale >= ZOOM_MAX} accessibilityLabel="Zoom in" />
         </View>
 
         <View style={styles.toolbarGroup}>
