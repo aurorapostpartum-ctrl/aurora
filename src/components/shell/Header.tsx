@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Avatar, Text } from '../ui';
+import { COMPANY } from '../../data/company';
 import { useAuth } from '../../providers/AuthProvider';
 import { colors, spacing } from '../../theme';
 
@@ -30,7 +31,12 @@ export function Header({ title, isSidebarLayout, unreadCount, onAvatarPress }: H
             <View style={styles.brandMark}>
               <Ionicons name="folder" size={14} color={colors.textOnAccent} />
             </View>
-            <Text variant="headline">SiteVault</Text>
+            <View>
+              <Text variant="headline">SiteVault</Text>
+              <Text variant="caption2" color={colors.textTertiary}>
+                {COMPANY.name}
+              </Text>
+            </View>
           </View>
         ) : (
           <Text variant="title3">{title}</Text>

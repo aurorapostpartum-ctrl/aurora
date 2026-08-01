@@ -103,6 +103,14 @@ export function hazardRecordsForTemplate(templateId: string) {
 // than the real wall clock, so anchor relative timestamps to it.
 const DEMO_NOW = new Date('2026-08-01T12:00:00Z').getTime();
 
+export function demoNow(): Date {
+  return new Date(DEMO_NOW);
+}
+
+export function isWithinLastDays(iso: string, days: number): boolean {
+  return DEMO_NOW - new Date(iso).getTime() <= days * 24 * 60 * 60 * 1000;
+}
+
 export function timeAgo(iso: string): string {
   const then = new Date(iso).getTime();
   const diffMs = Math.max(0, DEMO_NOW - then);

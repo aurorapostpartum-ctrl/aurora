@@ -3,7 +3,7 @@ import * as Haptics from 'expo-haptics';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
 
 import { Avatar, ProgressBar, StatusBadge, Text } from '../../components/ui';
-import { getPerson } from '../../data/selectors';
+import { activityForJob, getPerson, timeAgo } from '../../data/selectors';
 import { colors, radius, spacing } from '../../theme';
 import type { Job } from '../../types/domain';
 
@@ -28,6 +28,9 @@ export function JobFolderCard({ job, onPress }: JobFolderCardProps) {
   const people = [...job.managerIds, ...job.employeeIds]
     .map((id) => getPerson(id))
     .filter((p): p is NonNullable<typeof p> => Boolean(p));
+
+  const employeeCount = job.employeeIds.length;
+  const latestActivity = activityForJob(job.id)[0];
 
   const handlePress = () => {
     if (Platform.OS !== 'web') {
@@ -70,6 +73,21 @@ export function JobFolderCard({ job, onPress }: JobFolderCardProps) {
               fillColor={job.tabColor}
               style={styles.progress}
             />
+
+            <View style={styles.metaRow}>
+              <View style={styles.metaItem}>
+                <Ionicons name="people-outline" size={12} color={colors.inkTertiary} />
+                <Text variant="caption2" color={colors.inkTertiary} style={styles.metaText}>
+                  {employeeCount} {employeeCount === 1 ? 'employee' : 'employees'}
+                </Text>
+              </View>
+              <View style={styles.metaItem}>
+                <Ionicons name="time-outline" size={12} color={colors.inkTertiary} />
+                <Text variant="caption2" color={colors.inkTertiary} style={styles.metaText}>
+                  {latestActivity ? `Updated ${timeAgo(latestActivity.createdAt)}` : 'No activity yet'}
+                </Text>
+              </View>
+            </View>
 
             <View style={styles.footerRow}>
               <View style={styles.avatarStack}>
@@ -145,7 +163,20 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   progress: {
+    marginBottom: spacing.sm,
+  },
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: spacing.md,
+  },
+  metaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  metaText: {
+    marginLeft: 4,
   },
   footerRow: {
     flexDirection: 'row',
