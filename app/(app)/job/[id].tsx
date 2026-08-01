@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { Avatar, EmptyState, ProgressBar, Screen, StatusBadge, Text } from '../../../src/components/ui';
-import { useMockDataVersion, recordActivity } from '../../../src/data/mockStore';
+import { useMockDataVersion } from '../../../src/data/mockStore';
 import { useBreakpoint } from '../../../src/hooks/useBreakpoint';
 import {
   activityForJob,
@@ -38,7 +38,6 @@ import type {
   Deficiency,
   JobAnnouncement,
   JobChecklist,
-  JobDocument,
   JobHazardAssessment,
   JobNote,
   JobPhoto,
@@ -79,7 +78,7 @@ export default function JobDetailScreen() {
   const { id, section } = useLocalSearchParams<{ id: string; section?: string }>();
   const { person } = useAuth();
   const { isMobile } = useBreakpoint();
-  useMockDataVersion();
+  const version = useMockDataVersion();
   const job = getJob(id);
 
   const isManager = person?.role === 'manager';
@@ -96,7 +95,6 @@ export default function JobDetailScreen() {
   const [uploadDocOpen, setUploadDocOpen] = useState(false);
   const [moreActionsOpen, setMoreActionsOpen] = useState(false);
 
-  const [documents, setDocuments] = useState<JobDocument[]>(() => (job ? documentsForJob(job.id) : []));
   const [checklists, setChecklists] = useState<JobChecklist[]>(() => (job ? checklistsForJob(job.id) : []));
   const [hazards, setHazards] = useState<JobHazardAssessment[]>(() =>
     job ? hazardAssessmentsForJob(job.id) : []
@@ -113,7 +111,8 @@ export default function JobDetailScreen() {
     job ? completionForJob(job.id) : undefined
   );
 
-  const activity = useMemo(() => (job ? activityForJob(job.id) : []), [job]);
+  const documents = job ? documentsForJob(job.id) : [];
+  const activity = useMemo(() => (job ? activityForJob(job.id) : []), [job, version]);
 
   if (!job || !person) {
     return (
@@ -134,16 +133,6 @@ export default function JobDetailScreen() {
   const doneCompletionItems =
     checklists.reduce((sum, c) => sum + c.items.filter((i) => i.status !== 'pending').length, 0) +
     hazards.reduce((sum, h) => sum + h.hazards.filter((x) => x.acknowledged).length, 0);
-
-  const handleUploadDocument = (document: JobDocument) => {
-    setDocuments((prev) => [document, ...prev]);
-    recordActivity({
-      jobId: job.id,
-      type: 'document_uploaded',
-      actorId: person.id,
-      summary: `Uploaded ${document.title}`,
-    });
-  };
 
   return (
     <Screen glow={false}>
@@ -283,13 +272,7 @@ export default function JobDetailScreen() {
               onJump={(s) => setActiveSection(s as SectionKey)}
             />
           ) : null}
-          {activeSection === 'documents' ? (
-            <DocumentsSection
-              documents={documents}
-              setDocuments={setDocuments}
-              person={person}
-            />
-          ) : null}
+          {activeSection === 'documents' ? <DocumentsSection documents={documents} person={person} /> : null}
           {activeSection === 'checklists' ? (
             <ChecklistsSection
               job={job}
@@ -366,7 +349,6 @@ export default function JobDetailScreen() {
         onClose={() => setUploadDocOpen(false)}
         jobId={job.id}
         uploadedBy={person.id}
-        onUpload={handleUploadDocument}
       />
     </Screen>
   );

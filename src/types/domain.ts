@@ -34,21 +34,26 @@ export interface Job {
 }
 
 export type DocumentCategory =
-  | 'print'
-  | 'submittal'
-  | 'permit'
-  | 'contract'
-  | 'report'
+  | 'architectural'
+  | 'electrical'
+  | 'plumbing'
+  | 'mechanical'
+  | 'permits'
+  | 'specifications'
+  | 'contracts'
   | 'other';
+
+export type DocumentFileType = 'pdf' | 'dwg' | 'image';
 
 export interface DocumentRevision {
   id: string;
-  revisionLabel: string;
+  revisionNumber: number;
   uploadedBy: string;
   uploadedAt: string;
   notes: string;
-  fileType: 'pdf' | 'dwg' | 'image';
+  fileType: DocumentFileType;
   isCurrent: boolean;
+  pageCount: number;
 }
 
 export interface JobDocument {
@@ -56,10 +61,10 @@ export interface JobDocument {
   jobId: string;
   title: string;
   category: DocumentCategory;
-  discipline: string;
   revisions: DocumentRevision[];
-  acknowledgedBy: string[];
-  requiresAcknowledgement: boolean;
+  /** People who have reviewed the current revision. Cleared to just the uploader whenever a new revision is added. */
+  reviewedBy: string[];
+  reviewRequired: boolean;
 }
 
 export type ChecklistItemStatus = 'pending' | 'pass' | 'fail' | 'na';

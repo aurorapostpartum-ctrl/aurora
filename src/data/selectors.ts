@@ -37,6 +37,11 @@ export function documentsForJob(jobId: string) {
   return DOCUMENTS.filter((d) => d.jobId === jobId);
 }
 
+export function getDocument(id: string | undefined) {
+  if (!id) return undefined;
+  return DOCUMENTS.find((d) => d.id === id);
+}
+
 export function checklistsForJob(jobId: string) {
   return JOB_CHECKLISTS.filter((c) => c.jobId === jobId);
 }

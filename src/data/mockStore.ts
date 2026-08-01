@@ -1,9 +1,25 @@
 import { useSyncExternalStore } from 'react';
 
-import { ACTIVITY, CHECKLIST_TEMPLATES, HAZARD_TEMPLATES, JOBS, JOB_CHECKLISTS, JOB_HAZARD_ASSESSMENTS } from './company';
+import {
+  ACTIVITY,
+  CHECKLIST_TEMPLATES,
+  DOCUMENTS,
+  HAZARD_TEMPLATES,
+  JOBS,
+  JOB_CHECKLISTS,
+  JOB_HAZARD_ASSESSMENTS,
+} from './company';
 import { demoNow, formatDate } from './selectors';
 import { createId } from '../lib/id';
-import type { ActivityType, Job, JobStatus, ProjectType } from '../types/domain';
+import type {
+  ActivityType,
+  DocumentCategory,
+  DocumentFileType,
+  Job,
+  JobDocument,
+  JobStatus,
+  ProjectType,
+} from '../types/domain';
 
 // SiteVault's data is a seeded, in-memory dataset (see company.ts) rather
 // than a live backend. Screens that need to reflect writes made through
@@ -233,4 +249,123 @@ export function recordActivity(input: RecordActivityInput) {
     summary: input.summary,
   });
   emitChange();
+}
+
+export interface AddDocumentInput {
+  jobId: string;
+  title: string;
+  category: DocumentCategory;
+  fileType: DocumentFileType;
+  uploadedBy: string;
+  reviewRequired: boolean;
+  pageCount: number;
+}
+
+export function addDocument(input: AddDocumentInput): JobDocument {
+  const now = demoNow().toISOString();
+
+  const document: JobDocument = {
+    id: createId('doc'),
+    jobId: input.jobId,
+    title: input.title.trim(),
+    category: input.category,
+    reviewRequired: input.reviewRequired,
+    reviewedBy: [],
+    revisions: [
+      {
+        id: createId('rev'),
+        revisionNumber: 1,
+        uploadedBy: input.uploadedBy,
+        uploadedAt: now,
+        notes: 'Initial upload.',
+        fileType: input.fileType,
+        isCurrent: true,
+        pageCount: Math.max(1, input.pageCount),
+      },
+    ],
+  };
+
+  DOCUMENTS.unshift(document);
+  ACTIVITY.unshift({
+    id: createId('act'),
+    jobId: input.jobId,
+    type: 'document_uploaded',
+    actorId: input.uploadedBy,
+    createdAt: now,
+    summary: `Uploaded ${document.title}`,
+  });
+  emitChange();
+  return document;
+}
+
+export interface AddDocumentRevisionInput {
+  documentId: string;
+  uploadedBy: string;
+  notes: string;
+  fileType: DocumentFileType;
+  pageCount: number;
+}
+
+export function addDocumentRevision(input: AddDocumentRevisionInput): JobDocument | undefined {
+  const index = DOCUMENTS.findIndex((d) => d.id === input.documentId);
+  if (index === -1) return undefined;
+
+  const doc = DOCUMENTS[index];
+  const now = demoNow().toISOString();
+  const nextNumber = Math.max(...doc.revisions.map((r) => r.revisionNumber)) + 1;
+
+  const updated: JobDocument = {
+    ...doc,
+    revisions: [
+      {
+        id: createId('rev'),
+        revisionNumber: nextNumber,
+        uploadedBy: input.uploadedBy,
+        uploadedAt: now,
+        notes: input.notes.trim() || 'Revision update.',
+        fileType: input.fileType,
+        isCurrent: true,
+        pageCount: Math.max(1, input.pageCount),
+      },
+      ...doc.revisions.map((r) => ({ ...r, isCurrent: false })),
+    ],
+    // A fresh revision needs everyone's review again — except the person who
+    // just uploaded it, who by definition has seen what's in it.
+    reviewedBy: doc.reviewRequired ? [input.uploadedBy] : doc.reviewedBy,
+  };
+
+  DOCUMENTS[index] = updated;
+  ACTIVITY.unshift({
+    id: createId('act'),
+    jobId: doc.jobId,
+    type: 'document_revised',
+    actorId: input.uploadedBy,
+    createdAt: now,
+    summary: `Uploaded Rev ${nextNumber} of ${doc.title}`,
+  });
+  emitChange();
+  return updated;
+}
+
+export function markDocumentReviewed(documentId: string, personId: string): JobDocument | undefined {
+  const index = DOCUMENTS.findIndex((d) => d.id === documentId);
+  if (index === -1) return undefined;
+
+  const doc = DOCUMENTS[index];
+  if (doc.reviewedBy.includes(personId)) return doc;
+
+  const updated: JobDocument = { ...doc, reviewedBy: [...doc.reviewedBy, personId] };
+  DOCUMENTS[index] = updated;
+
+  const current = updated.revisions.find((r) => r.isCurrent) ?? updated.revisions[0];
+  ACTIVITY.unshift({
+    id: createId('act'),
+    jobId: doc.jobId,
+    type: 'document_acknowledged',
+    actorId: personId,
+    createdAt: demoNow().toISOString(),
+    summary: `Reviewed ${doc.title} (Rev ${current.revisionNumber})`,
+  });
+  emitChange();
+  return updated;
 }

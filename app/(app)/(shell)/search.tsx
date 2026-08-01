@@ -13,6 +13,7 @@ import {
   PEOPLE,
 } from '../../../src/data/company';
 import { getJob } from '../../../src/data/selectors';
+import { CATEGORY_LABEL } from '../../../src/features/documents/documentMeta';
 import { RoleGate } from '../../../src/navigation/RoleGate';
 import { useAuth } from '../../../src/providers/AuthProvider';
 import { colors, radius, spacing } from '../../../src/theme';
@@ -70,12 +71,13 @@ function SearchContent() {
 
     for (const doc of DOCUMENTS) {
       if (!scopedJobIds.has(doc.jobId)) continue;
-      if (doc.title.toLowerCase().includes(q) || doc.discipline.toLowerCase().includes(q)) {
+      const categoryLabel = CATEGORY_LABEL[doc.category];
+      if (doc.title.toLowerCase().includes(q) || categoryLabel.toLowerCase().includes(q)) {
         out.push({
           kind: 'document',
           id: doc.id,
           title: doc.title,
-          subtitle: `${getJob(doc.jobId)?.name ?? ''} · ${doc.discipline}`,
+          subtitle: `${getJob(doc.jobId)?.name ?? ''} · ${categoryLabel}`,
           jobId: doc.jobId,
           section: 'documents',
         });

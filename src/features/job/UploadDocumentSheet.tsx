@@ -1,46 +1,32 @@
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { BottomSheet, Button, Chip, Text, TextField } from '../../components/ui';
-import { createId } from '../../lib/id';
+import { BottomSheet, Button, Checkbox, Chip, Text, TextField } from '../../components/ui';
+import { addDocument } from '../../data/mockStore';
+import { CATEGORY_OPTIONS, FILE_TYPE_OPTIONS } from '../documents/documentMeta';
 import { colors, spacing } from '../../theme';
-import type { DocumentCategory, JobDocument } from '../../types/domain';
+import type { DocumentCategory, DocumentFileType } from '../../types/domain';
 
 export interface UploadDocumentSheetProps {
   visible: boolean;
   onClose: () => void;
   jobId: string;
   uploadedBy: string;
-  onUpload: (document: JobDocument) => void;
+  onUploaded?: (documentId: string) => void;
 }
 
-const CATEGORY_OPTIONS: { value: DocumentCategory; label: string }[] = [
-  { value: 'print', label: 'Print' },
-  { value: 'submittal', label: 'Submittal' },
-  { value: 'permit', label: 'Permit' },
-  { value: 'contract', label: 'Contract' },
-  { value: 'report', label: 'Report' },
-  { value: 'other', label: 'Other' },
-];
-
-const FILE_TYPE_OPTIONS: { value: JobDocument['revisions'][number]['fileType']; label: string }[] = [
-  { value: 'pdf', label: 'PDF' },
-  { value: 'dwg', label: 'DWG' },
-  { value: 'image', label: 'Image' },
-];
-
-export function UploadDocumentSheet({ visible, onClose, jobId, uploadedBy, onUpload }: UploadDocumentSheetProps) {
+export function UploadDocumentSheet({ visible, onClose, jobId, uploadedBy, onUploaded }: UploadDocumentSheetProps) {
   const [title, setTitle] = useState('');
-  const [discipline, setDiscipline] = useState('');
-  const [category, setCategory] = useState<DocumentCategory>('print');
-  const [fileType, setFileType] = useState<JobDocument['revisions'][number]['fileType']>('pdf');
+  const [category, setCategory] = useState<DocumentCategory>('architectural');
+  const [fileType, setFileType] = useState<DocumentFileType>('pdf');
+  const [reviewRequired, setReviewRequired] = useState(true);
   const [error, setError] = useState<string | undefined>();
 
   const reset = () => {
     setTitle('');
-    setDiscipline('');
-    setCategory('print');
+    setCategory('architectural');
     setFileType('pdf');
+    setReviewRequired(true);
     setError(undefined);
   };
 
@@ -55,31 +41,19 @@ export function UploadDocumentSheet({ visible, onClose, jobId, uploadedBy, onUpl
       return;
     }
 
-    const now = new Date().toISOString();
-    const document: JobDocument = {
-      id: createId('doc'),
+    const document = addDocument({
       jobId,
       title: title.trim(),
       category,
-      discipline: discipline.trim() || 'General',
-      requiresAcknowledgement: false,
-      acknowledgedBy: [],
-      revisions: [
-        {
-          id: createId('rev'),
-          revisionLabel: 'Rev A',
-          uploadedBy,
-          uploadedAt: now,
-          notes: 'Initial upload.',
-          fileType,
-          isCurrent: true,
-        },
-      ],
-    };
+      fileType,
+      uploadedBy,
+      reviewRequired,
+      pageCount: fileType === 'image' ? 1 : 6,
+    });
 
-    onUpload(document);
     reset();
     onClose();
+    onUploaded?.(document.id);
   };
 
   return (
@@ -95,14 +69,18 @@ export function UploadDocumentSheet({ visible, onClose, jobId, uploadedBy, onUpl
           }}
           error={error}
         />
-        <TextField label="Discipline" placeholder="e.g. Electrical" value={discipline} onChangeText={setDiscipline} />
 
         <Text variant="footnote" color={colors.textSecondary} style={styles.fieldLabel}>
           Category
         </Text>
         <View style={styles.chipRow}>
           {CATEGORY_OPTIONS.map((option) => (
-            <Chip key={option.value} label={option.label} selected={category === option.value} onPress={() => setCategory(option.value)} />
+            <Chip
+              key={option.value}
+              label={option.label}
+              selected={category === option.value}
+              onPress={() => setCategory(option.value)}
+            />
           ))}
         </View>
 
@@ -115,7 +93,13 @@ export function UploadDocumentSheet({ visible, onClose, jobId, uploadedBy, onUpl
           ))}
         </View>
 
-        <Button label="Upload as Rev A" onPress={handleSubmit} style={styles.submitButton} />
+        <Checkbox
+          checked={reviewRequired}
+          onChange={setReviewRequired}
+          label="Require the crew to review this document"
+        />
+
+        <Button label="Upload as Rev 1" onPress={handleSubmit} style={styles.submitButton} />
       </View>
     </BottomSheet>
   );
@@ -136,6 +120,6 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   submitButton: {
-    marginTop: spacing.xs,
+    marginTop: spacing.md,
   },
 });

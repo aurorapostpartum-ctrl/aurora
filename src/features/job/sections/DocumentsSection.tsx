@@ -1,190 +1,164 @@
 import { Ionicons } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
-import { useState, type Dispatch, type SetStateAction } from 'react';
-import { Platform, Pressable, StyleSheet, View } from 'react-native';
+import { router } from 'expo-router';
+import { useMemo, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
-import { Button, EmptyState, StatusBadge, Text } from '../../../components/ui';
+import { Card, Chip, EmptyState, Text, TextField } from '../../../components/ui';
 import { formatDate, personName } from '../../../data/selectors';
-import { colors, radius, spacing } from '../../../theme';
+import { colors, spacing } from '../../../theme';
 import type { JobDocument, Person } from '../../../types/domain';
+import {
+  CATEGORY_ICON,
+  CATEGORY_LABEL,
+  CATEGORY_OPTIONS,
+  currentRevision,
+  revisionLabel,
+  reviewStateFor,
+} from '../../documents/documentMeta';
+import { ReviewStatusBadge } from '../../documents/ReviewStatusBadge';
 
 interface DocumentsSectionProps {
   documents: JobDocument[];
-  setDocuments: Dispatch<SetStateAction<JobDocument[]>>;
   person: Person;
 }
 
-const CATEGORY_LABEL: Record<JobDocument['category'], string> = {
-  print: 'Print',
-  submittal: 'Submittal',
-  permit: 'Permit',
-  contract: 'Contract',
-  report: 'Report',
-  other: 'Other',
-};
+const ALL_CATEGORIES = 'all';
 
-const FILE_ICON: Record<JobDocument['revisions'][number]['fileType'], keyof typeof Ionicons.glyphMap> = {
-  pdf: 'document-text-outline',
-  dwg: 'construct-outline',
-  image: 'image-outline',
-};
+export function DocumentsSection({ documents, person }: DocumentsSectionProps) {
+  const [query, setQuery] = useState('');
+  const [category, setCategory] = useState<string>(ALL_CATEGORIES);
 
-export function DocumentsSection({ documents, setDocuments, person }: DocumentsSectionProps) {
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return documents.filter((doc) => {
+      if (category !== ALL_CATEGORIES && doc.category !== category) return false;
+      if (q && !doc.title.toLowerCase().includes(q)) return false;
+      return true;
+    });
+  }, [documents, query, category]);
 
   if (documents.length === 0) {
-    return <EmptyState icon="document-text-outline" title="No documents yet" />;
+    return <EmptyState icon="document-text-outline" title="No documents yet" message="Uploaded plans, permits, and prints will show up here." />;
   }
-
-  const handleAcknowledge = (docId: string) => {
-    if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    setDocuments((prev) =>
-      prev.map((d) =>
-        d.id === docId ? { ...d, acknowledgedBy: [...new Set([...d.acknowledgedBy, person.id])] } : d
-      )
-    );
-  };
 
   return (
     <View>
-      {documents.map((doc) => {
-        const current = doc.revisions.find((r) => r.isCurrent) ?? doc.revisions[0];
-        const expanded = expandedId === doc.id;
-        const needsAck = doc.requiresAcknowledgement && !doc.acknowledgedBy.includes(person.id);
+      <TextField
+        label=""
+        placeholder="Search documents..."
+        value={query}
+        onChangeText={setQuery}
+        autoCapitalize="none"
+        autoCorrect={false}
+        style={styles.search}
+      />
 
-        return (
-          <View key={doc.id} style={styles.card}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll} contentContainerStyle={styles.filterRow}>
+        <Chip label="All" selected={category === ALL_CATEGORIES} onPress={() => setCategory(ALL_CATEGORIES)} />
+        {CATEGORY_OPTIONS.map((option) => (
+          <Chip
+            key={option.value}
+            label={option.label}
+            selected={category === option.value}
+            onPress={() => setCategory(option.value)}
+          />
+        ))}
+      </ScrollView>
+
+      <Text variant="footnote" color={colors.textTertiary} style={styles.count}>
+        {filtered.length} document{filtered.length === 1 ? '' : 's'}
+      </Text>
+
+      {filtered.length === 0 ? (
+        <EmptyState icon="search-outline" title="No matching documents" message="Try a different search term or category." />
+      ) : (
+        filtered.map((doc) => {
+          const current = currentRevision(doc);
+          const reviewState = reviewStateFor(doc, person.id);
+          return (
             <Pressable
-              style={styles.headerRow}
-              onPress={() => setExpandedId(expanded ? null : doc.id)}
+              key={doc.id}
+              onPress={() => router.push(`/(app)/document/${doc.id}` as never)}
+              style={styles.rowPressable}
             >
-              <View style={styles.iconWrap}>
-                <Ionicons name={FILE_ICON[current.fileType]} size={18} color={colors.accentStrong} />
-              </View>
-              <View style={styles.headerText}>
-                <Text variant="headline" numberOfLines={1}>
-                  {doc.title}
-                </Text>
-                <Text variant="footnote" color={colors.textSecondary}>
-                  {doc.discipline} · {CATEGORY_LABEL[doc.category]} · {current.revisionLabel}
-                </Text>
-              </View>
-              <Ionicons
-                name={expanded ? 'chevron-up' : 'chevron-down'}
-                size={16}
-                color={colors.textTertiary}
-              />
-            </Pressable>
-
-            <View style={styles.badgeRow}>
-              <StatusBadge label={`${doc.revisions.length} revision${doc.revisions.length > 1 ? 's' : ''}`} tone="neutral" />
-              {doc.requiresAcknowledgement ? (
-                <StatusBadge
-                  label={needsAck ? 'Acknowledgement required' : 'Acknowledged'}
-                  tone={needsAck ? 'warning' : 'success'}
-                />
-              ) : null}
-            </View>
-
-            {expanded ? (
-              <View style={styles.revisionList}>
-                {doc.revisions.map((rev) => (
-                  <View key={rev.id} style={styles.revisionRow}>
-                    <View
-                      style={[
-                        styles.revisionDot,
-                        { backgroundColor: rev.isCurrent ? colors.accent : colors.textTertiary },
-                      ]}
-                    />
-                    <View style={styles.revisionText}>
-                      <Text variant="subhead" color={rev.isCurrent ? colors.textPrimary : colors.textSecondary}>
-                        {rev.revisionLabel} {rev.isCurrent ? '· Current' : ''}
-                      </Text>
-                      <Text variant="footnote" color={colors.textTertiary}>
-                        {personName(rev.uploadedBy)} · {formatDate(rev.uploadedAt)}
-                      </Text>
-                      <Text variant="footnote" color={colors.textSecondary} style={styles.revisionNotes}>
-                        {rev.notes}
-                      </Text>
-                    </View>
+              {({ pressed }) => (
+                <Card style={[styles.row, pressed && styles.rowPressed]} shadowToken="xs">
+                  <View style={styles.iconWrap}>
+                    <Ionicons name={CATEGORY_ICON[doc.category]} size={18} color={colors.accentStrong} />
                   </View>
-                ))}
-
-                {needsAck ? (
-                  <Button
-                    label="Acknowledge Current Revision"
-                    size="md"
-                    fullWidth={false}
-                    onPress={() => handleAcknowledge(doc.id)}
-                    style={styles.ackButton}
-                  />
-                ) : null}
-              </View>
-            ) : null}
-          </View>
-        );
-      })}
+                  <View style={styles.rowBody}>
+                    <View style={styles.titleRow}>
+                      <Text variant="headline" numberOfLines={1} style={styles.title}>
+                        {doc.title}
+                      </Text>
+                      <ReviewStatusBadge state={reviewState} />
+                    </View>
+                    <Text variant="footnote" color={colors.textSecondary} numberOfLines={1}>
+                      {CATEGORY_LABEL[doc.category]} · {revisionLabel(current.revisionNumber)} · {doc.revisions.length} revision
+                      {doc.revisions.length === 1 ? '' : 's'}
+                    </Text>
+                    <Text variant="footnote" color={colors.textTertiary} numberOfLines={1}>
+                      Uploaded by {personName(current.uploadedBy)} · {formatDate(current.uploadedAt)}
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={16} color={colors.textTertiary} />
+                </Card>
+              )}
+            </Pressable>
+          );
+        })
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
-    backgroundColor: colors.surface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.surfaceBorder,
-    borderRadius: radius.md,
-    padding: spacing.md,
+  search: {
+    marginBottom: 0,
+  },
+  filterScroll: {
+    marginTop: spacing.xs,
     marginBottom: spacing.sm,
   },
-  headerRow: {
+  filterRow: {
+    gap: spacing.xs,
+    paddingRight: spacing.md,
+  },
+  count: {
+    marginBottom: spacing.sm,
+    marginLeft: spacing.xxs,
+  },
+  rowPressable: {
+    marginBottom: spacing.sm,
+  },
+  row: {
     flexDirection: 'row',
     alignItems: 'center',
+    padding: spacing.md,
+  },
+  rowPressed: {
+    opacity: 0.92,
   },
   iconWrap: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: colors.accentMuted,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  headerText: {
+  rowBody: {
     flex: 1,
     marginLeft: spacing.sm,
     marginRight: spacing.sm,
   },
-  badgeRow: {
+  titleRow: {
     flexDirection: 'row',
+    alignItems: 'center',
     gap: spacing.xs,
-    marginTop: spacing.sm,
-    marginLeft: 44,
+    marginBottom: 2,
   },
-  revisionList: {
-    marginTop: spacing.md,
-    marginLeft: 44,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.divider,
-    paddingTop: spacing.sm,
-  },
-  revisionRow: {
-    flexDirection: 'row',
-    marginBottom: spacing.sm,
-  },
-  revisionDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginTop: 6,
-  },
-  revisionText: {
-    marginLeft: spacing.sm,
-    flex: 1,
-  },
-  revisionNotes: {
-    marginTop: 2,
-  },
-  ackButton: {
-    marginTop: spacing.xs,
+  title: {
+    flexShrink: 1,
   },
 });

@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { Card, ProgressBar, Text } from '../../../components/ui';
 import { formatDate, isWithinLastDays, personName, timeAgo } from '../../../data/selectors';
+import { revisionLabel } from '../../documents/documentMeta';
 import { colors, radius, spacing } from '../../../theme';
 import type {
   ActivityEntry,
@@ -98,7 +99,7 @@ export function OverviewSection({
           primary={`${documents.length} file${documents.length === 1 ? '' : 's'}`}
           secondary={
             latestDoc && latestDocRevision
-              ? `Latest: ${latestDoc.title} — ${latestDocRevision.revisionLabel}`
+              ? `Latest: ${latestDoc.title} — ${revisionLabel(latestDocRevision.revisionNumber)}`
               : 'No documents yet'
           }
           onPress={() => onJump('documents')}
