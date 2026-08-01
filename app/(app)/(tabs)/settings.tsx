@@ -1,29 +1,17 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Alert, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
-import { Button, GlassCard, Screen, Text } from '../../../src/components/ui';
+import { Avatar, Button, GlassCard, Screen, StatusBadge, Text } from '../../../src/components/ui';
+import { COMPANY } from '../../../src/data/company';
 import { useAuth } from '../../../src/providers/AuthProvider';
-import { colors, spacing } from '../../../src/theme';
+import { colors, spacing, TAB_BAR_HEIGHT } from '../../../src/theme';
 
 export default function SettingsScreen() {
-  const { user, signOut } = useAuth();
+  const { person, signOut } = useAuth();
   const [signingOut, setSigningOut] = useState(false);
-
-  const initials = useMemo(() => {
-    const fullName = (user?.user_metadata?.full_name as string | undefined)?.trim();
-    const source = fullName || user?.email || '?';
-    return source
-      .split(' ')
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((part) => part[0]?.toUpperCase())
-      .join('');
-  }, [user]);
-
-  const fullName = (user?.user_metadata?.full_name as string | undefined) ?? 'Your Account';
 
   const handleSignOutPress = () => {
     if (Platform.OS !== 'web') {
@@ -41,10 +29,12 @@ export default function SettingsScreen() {
     setSigningOut(false);
   };
 
+  if (!person) return null;
+
   return (
-    <Screen>
+    <Screen glow={false}>
       <ScrollView
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, { paddingBottom: TAB_BAR_HEIGHT + spacing.xl }]}
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.inner}>
@@ -57,22 +47,46 @@ export default function SettingsScreen() {
           <Animated.View entering={FadeInDown.duration(400).delay(60)}>
             <GlassCard style={styles.profileCard}>
               <View style={styles.profileRow}>
-                <View style={styles.avatar}>
-                  <Text variant="headline">{initials || '?'}</Text>
-                </View>
+                <Avatar initials={person.initials} color={person.avatarColor} size={52} />
                 <View style={styles.profileText}>
                   <Text variant="headline" numberOfLines={1}>
-                    {fullName}
+                    {person.name}
                   </Text>
                   <Text variant="footnote" color={colors.textSecondary} numberOfLines={1}>
-                    {user?.email}
+                    {person.title}
+                  </Text>
+                  <Text variant="footnote" color={colors.textTertiary} numberOfLines={1}>
+                    {person.email}
+                  </Text>
+                </View>
+                <StatusBadge
+                  label={person.role === 'manager' ? 'Manager' : 'Employee'}
+                  tone={person.role === 'manager' ? 'accent' : 'neutral'}
+                />
+              </View>
+            </GlassCard>
+          </Animated.View>
+
+          <Animated.View entering={FadeInDown.duration(400).delay(110)}>
+            <Text variant="caption1" color={colors.textTertiary} style={styles.sectionLabel}>
+              COMPANY
+            </Text>
+            <GlassCard style={styles.groupCard}>
+              <View style={styles.row}>
+                <View style={styles.rowIcon}>
+                  <Ionicons name="business-outline" size={18} color={colors.textSecondary} />
+                </View>
+                <View style={styles.rowLabelText}>
+                  <Text variant="body">{COMPANY.name}</Text>
+                  <Text variant="footnote" color={colors.textTertiary}>
+                    {COMPANY.trade} · {COMPANY.hqAddress}
                   </Text>
                 </View>
               </View>
             </GlassCard>
           </Animated.View>
 
-          <Animated.View entering={FadeInDown.duration(400).delay(120)}>
+          <Animated.View entering={FadeInDown.duration(400).delay(150)}>
             <Text variant="caption1" color={colors.textTertiary} style={styles.sectionLabel}>
               ACCOUNT
             </Text>
@@ -85,7 +99,7 @@ export default function SettingsScreen() {
             </GlassCard>
           </Animated.View>
 
-          <Animated.View entering={FadeInDown.duration(400).delay(180)} style={styles.signOutBlock}>
+          <Animated.View entering={FadeInDown.duration(400).delay(190)} style={styles.signOutBlock}>
             <Button
               label="Sign Out"
               variant="destructive"
@@ -96,7 +110,7 @@ export default function SettingsScreen() {
 
           <Animated.View entering={FadeInDown.duration(400).delay(220)}>
             <Text variant="caption1" color={colors.textTertiary} style={styles.version}>
-              CodeBook Canada Pro · v1.0.0
+              SiteVault · v1.0.0
             </Text>
           </Animated.View>
         </View>
@@ -119,7 +133,7 @@ function SettingsRow({
       <View style={styles.rowIcon}>
         <Ionicons name={icon} size={18} color={colors.textSecondary} />
       </View>
-      <Text variant="body" style={styles.rowLabel}>
+      <Text variant="body" style={styles.rowLabelFlex}>
         {label}
       </Text>
       <Ionicons name="chevron-forward" size={16} color={colors.textTertiary} />
@@ -135,7 +149,6 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.sm,
-    paddingBottom: spacing.xxxl,
     alignItems: 'center',
   },
   inner: {
@@ -152,16 +165,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: spacing.md,
-  },
-  avatar: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: colors.accentMuted,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.accentBorder,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   profileText: {
     marginLeft: spacing.sm,
@@ -185,7 +188,11 @@ const styles = StyleSheet.create({
     width: 28,
     alignItems: 'flex-start',
   },
-  rowLabel: {
+  rowLabelText: {
+    flex: 1,
+    marginLeft: spacing.xs,
+  },
+  rowLabelFlex: {
     flex: 1,
     marginLeft: spacing.xs,
   },

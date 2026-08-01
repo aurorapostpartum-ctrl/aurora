@@ -10,7 +10,7 @@ export default function AppTabsLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: colors.accent,
+        tabBarActiveTintColor: colors.accentStrong,
         tabBarInactiveTintColor: colors.textTertiary,
         tabBarShowLabel: true,
         tabBarStyle: styles.tabBar,
@@ -23,9 +23,27 @@ export default function AppTabsLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
+          title: 'Jobs',
           tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons name={focused ? 'home' : 'home-outline'} size={size} color={color} />
+            <Ionicons name={focused ? 'folder-open' : 'folder-open-outline'} size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="search"
+        options={{
+          title: 'Search',
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons name={focused ? 'search' : 'search-outline'} size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="company"
+        options={{
+          title: 'Company',
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons name={focused ? 'business' : 'business-outline'} size={size} color={color} />
           ),
         }}
       />

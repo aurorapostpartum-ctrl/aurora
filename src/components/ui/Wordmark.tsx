@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { StyleSheet, View } from 'react-native';
 
 import { colors, radius, spacing } from '../../theme';
@@ -12,15 +13,21 @@ export function Wordmark({ compact = false, stacked = false }: WordmarkProps) {
   return (
     <View style={[styles.row, stacked && styles.column]}>
       <View style={[styles.mark, compact && styles.markCompact, stacked && styles.markHero]}>
-        <Text variant={compact ? 'headline' : 'title1'} color={colors.textPrimary}>
-          C
-        </Text>
+        <Ionicons
+          name="folder"
+          size={compact ? 18 : stacked ? 32 : 26}
+          color={colors.textOnAccent}
+        />
       </View>
       {!compact ? (
         <View style={[styles.textBlock, stacked && styles.textBlockStacked]}>
-          <Text variant="headline">CodeBook Canada</Text>
-          <Text variant="caption1" color={colors.accent} style={stacked && styles.proStacked}>
-            PRO
+          <Text variant="headline">SiteVault</Text>
+          <Text
+            variant="caption2"
+            color={colors.textTertiary}
+            style={[styles.tagline, stacked && styles.taglineStacked]}
+          >
+            EVERY JOB. ONE FOLDER.
           </Text>
         </View>
       ) : null}
@@ -70,7 +77,11 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
     alignItems: 'center',
   },
-  proStacked: {
+  tagline: {
+    marginTop: 2,
+    letterSpacing: 1.1,
+  },
+  taglineStacked: {
     textAlign: 'center',
   },
 });

@@ -19,7 +19,7 @@ export default function RootLayout() {
 }
 
 function RootNavigator() {
-  const { status, needsOnboarding } = useAuth();
+  const { status } = useAuth();
 
   useEffect(() => {
     if (status !== 'loading') {
@@ -42,10 +42,7 @@ function RootNavigator() {
       <Stack.Protected guard={status === 'signedOut'}>
         <Stack.Screen name="(auth)" />
       </Stack.Protected>
-      <Stack.Protected guard={status === 'signedIn' && needsOnboarding}>
-        <Stack.Screen name="(onboarding)" />
-      </Stack.Protected>
-      <Stack.Protected guard={status === 'signedIn' && !needsOnboarding}>
+      <Stack.Protected guard={status === 'signedIn'}>
         <Stack.Screen name="(app)" />
       </Stack.Protected>
       <Stack.Screen name="+not-found" />

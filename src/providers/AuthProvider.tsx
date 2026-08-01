@@ -1,4 +1,3 @@
-import type { Session, User } from '@supabase/supabase-js';
 import {
   createContext,
   useCallback,
@@ -8,123 +7,86 @@ import {
   useState,
 } from 'react';
 
-import { supabase } from '../lib/supabase';
-import type { OnboardingPayload } from '../features/onboarding/types';
+import { PEOPLE } from '../data/company';
+import { storage } from '../lib/storage';
+import type { Person } from '../types/domain';
 
 export type AuthStatus = 'loading' | 'signedIn' | 'signedOut';
 
+const SESSION_KEY = 'sitevault.session.personId';
+
+// SiteVault runs on a self-contained demo company (Northline Construction),
+// so authentication is a local lookup against the seeded roster rather than
+// a hosted backend. Any of the seeded accounts uses this shared password.
+export const DEMO_PASSWORD = 'sitevault';
+
 interface AuthContextValue {
   status: AuthStatus;
-  session: Session | null;
-  user: User | null;
-  needsOnboarding: boolean;
+  person: Person | null;
   signInWithPassword: (email: string, password: string) => Promise<{ error: string | null }>;
-  signUpWithPassword: (
-    email: string,
-    password: string,
-    fullName: string,
-    companyName: string
-  ) => Promise<{ error: string | null }>;
+  signInAs: (personId: string) => Promise<void>;
   signOut: () => Promise<void>;
-  resetPassword: (email: string) => Promise<{ error: string | null }>;
-  completeOnboarding: (payload: OnboardingPayload) => Promise<{ error: string | null }>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null);
   const [status, setStatus] = useState<AuthStatus>('loading');
+  const [person, setPerson] = useState<Person | null>(null);
 
   useEffect(() => {
     let mounted = true;
-
-    supabase.auth.getSession().then(({ data }) => {
+    storage.getItem(SESSION_KEY).then((id) => {
       if (!mounted) return;
-      setSession(data.session);
-      setStatus(data.session ? 'signedIn' : 'signedOut');
+      const found = id ? PEOPLE.find((p) => p.id === id) : undefined;
+      setPerson(found ?? null);
+      setStatus(found ? 'signedIn' : 'signedOut');
     });
-
-    const { data: subscription } = supabase.auth.onAuthStateChange((_event, nextSession) => {
-      if (!mounted) return;
-      setSession(nextSession);
-      setStatus(nextSession ? 'signedIn' : 'signedOut');
-    });
-
     return () => {
       mounted = false;
-      subscription.subscription.unsubscribe();
     };
   }, []);
 
-  const signInWithPassword = useCallback(async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return { error: error?.message ?? null };
+  const applySession = useCallback(async (found: Person) => {
+    await storage.setItem(SESSION_KEY, found.id);
+    setPerson(found);
+    setStatus('signedIn');
   }, []);
 
-  const signUpWithPassword = useCallback(
-    async (email: string, password: string, fullName: string, companyName: string) => {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: { data: { full_name: fullName, company_name: companyName } },
-      });
-      return { error: error?.message ?? null };
+  const signInWithPassword = useCallback(
+    async (email: string, password: string) => {
+      const match = PEOPLE.find(
+        (p) => p.email.toLowerCase() === email.trim().toLowerCase()
+      );
+      if (!match) {
+        return { error: 'No SiteVault account found with that email.' };
+      }
+      if (password !== DEMO_PASSWORD) {
+        return { error: 'Incorrect password.' };
+      }
+      await applySession(match);
+      return { error: null };
     },
-    []
+    [applySession]
+  );
+
+  const signInAs = useCallback(
+    async (personId: string) => {
+      const match = PEOPLE.find((p) => p.id === personId);
+      if (match) await applySession(match);
+    },
+    [applySession]
   );
 
   const signOut = useCallback(async () => {
-    await supabase.auth.signOut();
+    await storage.removeItem(SESSION_KEY);
+    setPerson(null);
+    setStatus('signedOut');
   }, []);
-
-  const resetPassword = useCallback(async (email: string) => {
-    const { error } = await supabase.auth.resetPasswordForEmail(email);
-    return { error: error?.message ?? null };
-  }, []);
-
-  const completeOnboarding = useCallback(async (payload: OnboardingPayload) => {
-    const { error } = await supabase.auth.updateUser({
-      data: {
-        onboarding_completed: true,
-        company_name: payload.companyName,
-        province: payload.province,
-        trades: payload.trades,
-        employee_count: payload.employeeCount,
-        logo_uri: payload.logoUri,
-        invited_emails: payload.inviteEmails,
-        subscription_plan: payload.subscriptionPlan,
-      },
-    });
-    return { error: error?.message ?? null };
-  }, []);
-
-  const needsOnboarding = Boolean(
-    session && session.user.user_metadata?.onboarding_completed !== true
-  );
 
   const value = useMemo<AuthContextValue>(
-    () => ({
-      status,
-      session,
-      user: session?.user ?? null,
-      needsOnboarding,
-      signInWithPassword,
-      signUpWithPassword,
-      signOut,
-      resetPassword,
-      completeOnboarding,
-    }),
-    [
-      status,
-      session,
-      needsOnboarding,
-      signInWithPassword,
-      signUpWithPassword,
-      signOut,
-      resetPassword,
-      completeOnboarding,
-    ]
+    () => ({ status, person, signInWithPassword, signInAs, signOut }),
+    [status, person, signInWithPassword, signInAs, signOut]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

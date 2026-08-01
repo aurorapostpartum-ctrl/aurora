@@ -1,27 +1,27 @@
 {
   "expo": {
-    "name": "CodeBook Canada Pro",
-    "slug": "codebook-canada-pro",
+    "name": "SiteVault",
+    "slug": "sitevault",
     "version": "1.0.0",
-    "scheme": "codebookcanadapro",
+    "scheme": "sitevault",
     "orientation": "default",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
-    "backgroundColor": "#0B0B0D",
+    "backgroundColor": "#141210",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.codebookcanada.pro",
+      "bundleIdentifier": "com.northline.sitevault",
       "userInterfaceStyle": "dark",
       "infoPlist": {
         "UIViewControllerBasedStatusBarAppearance": true
       }
     },
     "android": {
-      "package": "com.codebookcanada.pro",
+      "package": "com.northline.sitevault",
       "userInterfaceStyle": "dark",
       "adaptiveIcon": {
-        "backgroundColor": "#0B0B0D",
+        "backgroundColor": "#141210",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -39,12 +39,12 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#0B0B0D",
+          "backgroundColor": "#141210",
           "image": "./assets/icon.png",
           "imageWidth": 120,
           "resizeMode": "contain",
           "dark": {
-            "backgroundColor": "#0B0B0D"
+            "backgroundColor": "#141210"
           }
         }
       ],
@@ -58,7 +58,7 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "CodeBook Canada Pro uses your photo library to set your company logo."
+          "photosPermission": "SiteVault uses your photo library to attach job site photos and documents."
         }
       ]
     ],

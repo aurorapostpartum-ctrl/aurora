@@ -1,7 +1,7 @@
-import { Link, router } from 'expo-router';
+import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useEffect, useState } from 'react';
-import { Platform, StyleSheet, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import {
@@ -15,13 +15,14 @@ import {
   TextField,
   Wordmark,
 } from '../../src/components/ui';
+import { COMPANY, PEOPLE } from '../../src/data/company';
 import { useAuth } from '../../src/providers/AuthProvider';
 import { useRememberedEmail } from '../../src/features/auth/useRememberedEmail';
-import { colors, spacing } from '../../src/theme';
+import { colors, radius, spacing } from '../../src/theme';
 import { isValidEmail } from '../../src/lib/validation';
 
 export default function SignInScreen() {
-  const { signInWithPassword } = useAuth();
+  const { signInWithPassword, signInAs } = useAuth();
   const { rememberedEmail, rememberMe, setRememberMe, persistEmail } = useRememberedEmail();
 
   const [email, setEmail] = useState('');
@@ -68,8 +69,15 @@ export default function SignInScreen() {
     }
   };
 
+  const handleQuickSignIn = async (personId: string) => {
+    if (Platform.OS !== 'web') {
+      Haptics.selectionAsync();
+    }
+    await signInAs(personId);
+  };
+
   return (
-    <AuthContainer centered background={<AnimatedBackground />}>
+    <AuthContainer background={<AnimatedBackground />}>
       <Animated.View entering={FadeInDown.duration(460).delay(40)} style={styles.brand}>
         <Wordmark stacked />
       </Animated.View>
@@ -79,7 +87,7 @@ export default function SignInScreen() {
           Welcome back
         </Text>
         <Text variant="body" color={colors.textSecondary} style={styles.subtitle}>
-          Sign in to access your workspace
+          Sign in to {COMPANY.name}&rsquo;s workspace
         </Text>
       </Animated.View>
 
@@ -128,11 +136,13 @@ export default function SignInScreen() {
 
             <View style={styles.optionsRow}>
               <Checkbox checked={rememberMe} onChange={setRememberMe} label="Remember me" />
-              <Link href="/(auth)/forgot-password" asChild>
-                <Text variant="footnote" color={colors.accent}>
-                  Forgot password?
-                </Text>
-              </Link>
+              <Text
+                variant="footnote"
+                color={colors.accent}
+                onPress={() => router.push('/(auth)/forgot-password')}
+              >
+                Forgot password?
+              </Text>
             </View>
 
             {formError ? (
@@ -150,19 +160,41 @@ export default function SignInScreen() {
               style={styles.signInButton}
             />
 
+            <Text variant="caption1" color={colors.textTertiary} style={styles.hint}>
+              Demo password for every account: {'sitevault'}
+            </Text>
+
             <View style={styles.dividerRow}>
               <View style={styles.dividerLine} />
               <Text variant="caption2" color={colors.textTertiary} style={styles.dividerLabel}>
-                NEW TO CODEBOOK CANADA PRO
+                QUICK DEMO SIGN IN
               </Text>
               <View style={styles.dividerLine} />
             </View>
 
-            <Button
-              label="Create Company"
-              variant="secondary"
-              onPress={() => router.push('/(auth)/sign-up')}
-            />
+            <View style={styles.peopleList}>
+              {PEOPLE.map((person) => (
+                <Pressable
+                  key={person.id}
+                  onPress={() => handleQuickSignIn(person.id)}
+                  style={styles.personRow}
+                >
+                  <View style={[styles.avatar, { backgroundColor: person.avatarColor }]}>
+                    <Text variant="footnote" color={colors.textOnAccent}>
+                      {person.initials}
+                    </Text>
+                  </View>
+                  <View style={styles.personText}>
+                    <Text variant="subhead" numberOfLines={1}>
+                      {person.name}
+                    </Text>
+                    <Text variant="caption1" color={colors.textTertiary} numberOfLines={1}>
+                      {person.title} · {person.role === 'manager' ? 'Manager' : 'Employee'}
+                    </Text>
+                  </View>
+                </Pressable>
+              ))}
+            </View>
           </View>
         </GlassCard>
       </Animated.View>
@@ -204,12 +236,16 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   signInButton: {
+    marginBottom: spacing.sm,
+  },
+  hint: {
+    textAlign: 'center',
     marginBottom: spacing.lg,
   },
   dividerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing.lg,
+    marginBottom: spacing.md,
   },
   dividerLine: {
     flex: 1,
@@ -218,5 +254,26 @@ const styles = StyleSheet.create({
   },
   dividerLabel: {
     marginHorizontal: spacing.sm,
+  },
+  peopleList: {
+    gap: spacing.xs,
+  },
+  personRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.xs,
+    borderRadius: radius.md,
+  },
+  avatar: {
+    width: 34,
+    height: 34,
+    borderRadius: radius.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  personText: {
+    marginLeft: spacing.sm,
+    flex: 1,
   },
 });

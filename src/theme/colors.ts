@@ -1,28 +1,40 @@
 export const colors = {
-  background: '#0B0B0D',
-  backgroundElevated: '#131316',
-  backgroundElevated2: '#1B1B1F',
+  background: '#141210',
+  backgroundElevated: '#1C1916',
+  backgroundElevated2: '#25211C',
 
-  surface: 'rgba(255,255,255,0.06)',
-  surfaceBorder: 'rgba(255,255,255,0.10)',
-  surfaceHighlight: 'rgba(255,255,255,0.14)',
+  surface: 'rgba(250,245,235,0.05)',
+  surfaceBorder: 'rgba(250,245,235,0.10)',
+  surfaceHighlight: 'rgba(250,245,235,0.14)',
 
-  accent: '#2F80FF',
-  accentMuted: 'rgba(47,128,255,0.16)',
-  accentBorder: 'rgba(47,128,255,0.35)',
+  // Warm, paper-like surface used for the Job Folder concept, document
+  // previews, and other places that should feel like physical site paperwork.
+  paper: '#F3EDE0',
+  paperElevated: '#FAF7EF',
+  paperBorder: 'rgba(29,24,16,0.12)',
+  ink: '#221D15',
+  inkSecondary: 'rgba(34,29,21,0.64)',
+  inkTertiary: 'rgba(34,29,21,0.42)',
 
-  success: '#30D158',
-  warning: '#FFB020',
-  danger: '#FF453A',
-  dangerMuted: 'rgba(255,69,58,0.14)',
+  accent: '#C4813C',
+  accentMuted: 'rgba(196,129,60,0.16)',
+  accentBorder: 'rgba(196,129,60,0.38)',
+  accentStrong: '#E0954A',
 
-  textPrimary: '#FFFFFF',
-  textSecondary: 'rgba(255,255,255,0.62)',
-  textTertiary: 'rgba(255,255,255,0.38)',
-  textOnAccent: '#FFFFFF',
+  success: '#4FA968',
+  successMuted: 'rgba(79,169,104,0.16)',
+  warning: '#DDA52B',
+  warningMuted: 'rgba(221,165,43,0.16)',
+  danger: '#E15C42',
+  dangerMuted: 'rgba(225,92,66,0.15)',
 
-  divider: 'rgba(255,255,255,0.08)',
-  overlay: 'rgba(0,0,0,0.55)',
+  textPrimary: '#F6F1E7',
+  textSecondary: 'rgba(246,241,231,0.64)',
+  textTertiary: 'rgba(246,241,231,0.40)',
+  textOnAccent: '#191410',
+
+  divider: 'rgba(246,241,231,0.09)',
+  overlay: 'rgba(10,8,6,0.60)',
 } as const;
 
 export type ColorToken = keyof typeof colors;

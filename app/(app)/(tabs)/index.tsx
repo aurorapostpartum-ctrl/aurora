@@ -1,155 +1,224 @@
+import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { useCallback, useMemo, useState } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { useMemo } from 'react';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
-import { Screen, Text, Toast } from '../../../src/components/ui';
+import { Screen, Text } from '../../../src/components/ui';
+import { COMPANY, DEFICIENCIES, JOBS } from '../../../src/data/company';
+import { notificationsForPerson } from '../../../src/data/selectors';
+import { JobFolderCard } from '../../../src/features/jobs/JobFolderCard';
 import { useAuth } from '../../../src/providers/AuthProvider';
 import { colors, spacing, TAB_BAR_HEIGHT } from '../../../src/theme';
-import { ACTION_CARDS, FEATURED_ACTION } from '../../../src/features/dashboard/actionCards';
-import { ActionCard } from '../../../src/features/dashboard/ActionCard';
-import { FeaturedCard } from '../../../src/features/dashboard/FeaturedCard';
-import { RecentSearchesSection } from '../../../src/features/dashboard/RecentSearchesSection';
-import { SavedCodesSection } from '../../../src/features/dashboard/SavedCodesSection';
-import { PinnedDocumentsSection } from '../../../src/features/dashboard/PinnedDocumentsSection';
-import { NotificationsSection } from '../../../src/features/dashboard/NotificationsSection';
-import { TodaysUpdatesSection } from '../../../src/features/dashboard/TodaysUpdatesSection';
-import { useNotifications } from '../../../src/features/dashboard/useNotifications';
 
-export default function DashboardScreen() {
-  const { user } = useAuth();
-  const { refetch, isRefetching } = useNotifications();
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
+export default function JobsScreen() {
+  const { person } = useAuth();
 
-  const firstName = useMemo(() => {
-    const fullName = (user?.user_metadata?.full_name as string | undefined)?.trim();
-    if (fullName) return fullName.split(' ')[0];
-    return user?.email?.split('@')[0] ?? 'there';
-  }, [user]);
+  const visibleJobs = useMemo(() => {
+    if (!person) return [];
+    if (person.role === 'manager') return JOBS;
+    return JOBS.filter((j) => person.jobIds.includes(j.id));
+  }, [person]);
 
-  const companyName = user?.user_metadata?.company_name as string | undefined;
+  const unreadCount = useMemo(() => {
+    if (!person) return 0;
+    return notificationsForPerson(person.id).filter((n) => !n.read).length;
+  }, [person]);
 
-  const showComingSoon = useCallback((title: string) => {
-    setToastMessage(`${title} is coming soon`);
-  }, []);
+  const stats = useMemo(() => {
+    const activeCount = visibleJobs.filter((j) => j.status === 'active').length;
+    const visibleIds = new Set(visibleJobs.map((j) => j.id));
+    const openDeficiencies = DEFICIENCIES.filter(
+      (d) => visibleIds.has(d.jobId) && d.status !== 'resolved'
+    ).length;
+    return { activeCount, openDeficiencies };
+  }, [visibleJobs]);
 
-  const handleActionPress = useCallback(
-    (cardId: string, title: string) => {
-      if (cardId === 'search-codes') {
-        router.push('/search');
-        return;
-      }
-      showComingSoon(title);
-    },
-    [showComingSoon]
-  );
+  if (!person) return null;
+
+  const greeting = getGreeting();
+  const firstName = person.name.split(' ')[0];
 
   return (
-    <Screen edges={['top', 'left', 'right']}>
+    <Screen glow={false}>
       <ScrollView
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, { paddingBottom: TAB_BAR_HEIGHT + spacing.xl }]}
         showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefetching}
-            onRefresh={refetch}
-            tintColor={colors.accent}
-            colors={[colors.accent]}
-          />
-        }
       >
         <View style={styles.inner}>
-          <Animated.View entering={FadeInDown.duration(400)} style={styles.greetingBlock}>
-            <Text variant="footnote" color={colors.textSecondary}>
-              Welcome back
-            </Text>
-            <Text variant="largeTitle" style={styles.greetingName}>
-              {firstName}
-            </Text>
-            {companyName ? (
-              <Text variant="subhead" color={colors.textTertiary} style={styles.companyName}>
-                {companyName}
+          <Animated.View entering={FadeInDown.duration(400)} style={styles.headerRow}>
+            <View style={styles.headerText}>
+              <Text variant="caption1" color={colors.textTertiary} style={styles.company}>
+                {COMPANY.name.toUpperCase()}
               </Text>
-            ) : null}
+              <Text variant="largeTitle">
+                {greeting}, {firstName}
+              </Text>
+            </View>
+            <Pressable
+              onPress={() => router.push('/(app)/notifications')}
+              style={styles.bellButton}
+              hitSlop={10}
+            >
+              <Ionicons name="notifications-outline" size={22} color={colors.textPrimary} />
+              {unreadCount > 0 ? (
+                <View style={styles.badge}>
+                  <Text variant="caption2" color={colors.textOnAccent}>
+                    {unreadCount}
+                  </Text>
+                </View>
+              ) : null}
+            </Pressable>
           </Animated.View>
 
-          <Animated.View entering={FadeInDown.duration(400).delay(60)} style={styles.section}>
-            <FeaturedCard
-              config={FEATURED_ACTION}
-              onPress={() => router.push('/assistant')}
+          <Animated.View entering={FadeInDown.duration(400).delay(60)} style={styles.statsRow}>
+            <StatTile label="Active jobs" value={stats.activeCount} icon="hammer-outline" />
+            <StatTile
+              label="Open deficiencies"
+              value={stats.openDeficiencies}
+              icon="alert-circle-outline"
+              tone={stats.openDeficiencies > 0 ? colors.danger : colors.textPrimary}
             />
           </Animated.View>
 
-          <Animated.View entering={FadeInDown.duration(400).delay(100)} style={styles.grid}>
-            {ACTION_CARDS.map((card) => (
-              <ActionCard
-                key={card.id}
-                config={card}
-                onPress={() => handleActionPress(card.id, card.title)}
-              />
+          <Animated.View entering={FadeInDown.duration(400).delay(100)} style={styles.sectionHeaderRow}>
+            <Text variant="title3">
+              {person.role === 'manager' ? 'All Job Folders' : 'Your Job Folders'}
+            </Text>
+            <Text variant="footnote" color={colors.textTertiary}>
+              {visibleJobs.length} {visibleJobs.length === 1 ? 'job' : 'jobs'}
+            </Text>
+          </Animated.View>
+
+          <View style={styles.grid}>
+            {visibleJobs.map((job, index) => (
+              <Animated.View
+                key={job.id}
+                entering={FadeInDown.duration(400).delay(140 + index * 60)}
+                style={styles.gridItem}
+              >
+                <JobFolderCard job={job} onPress={() => router.push(`/(app)/job/${job.id}`)} />
+              </Animated.View>
             ))}
-          </Animated.View>
-
-          <Animated.View entering={FadeInDown.duration(400).delay(140)}>
-            <RecentSearchesSection />
-          </Animated.View>
-
-          <Animated.View entering={FadeInDown.duration(400).delay(180)}>
-            <SavedCodesSection />
-          </Animated.View>
-
-          <Animated.View entering={FadeInDown.duration(400).delay(220)}>
-            <NotificationsSection />
-          </Animated.View>
-
-          <Animated.View entering={FadeInDown.duration(400).delay(260)}>
-            <PinnedDocumentsSection />
-          </Animated.View>
-
-          <Animated.View entering={FadeInDown.duration(400).delay(300)}>
-            <TodaysUpdatesSection />
-          </Animated.View>
+          </View>
         </View>
       </ScrollView>
-
-      {toastMessage ? (
-        <Toast
-          message={toastMessage}
-          onHide={() => setToastMessage(null)}
-          bottomOffset={TAB_BAR_HEIGHT}
-        />
-      ) : null}
     </Screen>
   );
+}
+
+function StatTile({
+  label,
+  value,
+  icon,
+  tone = colors.textPrimary,
+}: {
+  label: string;
+  value: number;
+  icon: keyof typeof Ionicons.glyphMap;
+  tone?: string;
+}) {
+  return (
+    <View style={styles.statTile}>
+      <View style={styles.statIconWrap}>
+        <Ionicons name={icon} size={16} color={colors.textSecondary} />
+      </View>
+      <Text variant="title2" color={tone} style={styles.statValue}>
+        {value}
+      </Text>
+      <Text variant="caption1" color={colors.textTertiary}>
+        {label}
+      </Text>
+    </View>
+  );
+}
+
+function getGreeting() {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Good morning';
+  if (hour < 18) return 'Good afternoon';
+  return 'Good evening';
 }
 
 const styles = StyleSheet.create({
   content: {
     paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.xxxl,
+    paddingTop: spacing.sm,
     alignItems: 'center',
   },
   inner: {
     width: '100%',
-    maxWidth: 720,
+    maxWidth: 1040,
   },
-  greetingBlock: {
-    marginTop: spacing.sm,
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
     marginBottom: spacing.lg,
   },
-  greetingName: {
-    marginTop: 2,
+  headerText: {
+    flex: 1,
+    paddingRight: spacing.md,
   },
-  companyName: {
-    marginTop: spacing.xxs,
+  company: {
+    letterSpacing: 1.2,
+    marginBottom: spacing.xxs,
   },
-  section: {
-    marginBottom: spacing.lg,
+  bellButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: colors.surface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.surfaceBorder,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  badge: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: colors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginBottom: spacing.xl,
+  },
+  statTile: {
+    flex: 1,
+    backgroundColor: colors.surface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.surfaceBorder,
+    borderRadius: 14,
+    padding: spacing.md,
+  },
+  statIconWrap: {
+    marginBottom: spacing.sm,
+  },
+  statValue: {
+    marginBottom: 2,
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    marginBottom: spacing.md,
   },
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: spacing.sm,
-    marginBottom: spacing.lg,
+    gap: spacing.md,
+  },
+  gridItem: {
+    flexGrow: 1,
+    flexBasis: 320,
+    maxWidth: 480,
   },
 });

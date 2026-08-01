@@ -6,13 +6,11 @@ import { Platform, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { AnimatedBackground, AuthContainer, Button, Text, TextField } from '../../src/components/ui';
-import { useAuth } from '../../src/providers/AuthProvider';
+import { PEOPLE } from '../../src/data/company';
 import { isValidEmail } from '../../src/lib/validation';
 import { colors, spacing } from '../../src/theme';
 
 export default function ForgotPasswordScreen() {
-  const { resetPassword } = useAuth();
-
   const [email, setEmail] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -27,19 +25,19 @@ export default function ForgotPasswordScreen() {
       return;
     }
 
-    setError(null);
-    setSubmitting(true);
-    const { error: resetError } = await resetPassword(email.trim());
-    setSubmitting(false);
-
-    if (resetError) {
-      setError(resetError);
+    const known = PEOPLE.some((p) => p.email.toLowerCase() === email.trim().toLowerCase());
+    if (!known) {
+      setError('No SiteVault account found with that email.');
       if (Platform.OS !== 'web') {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
       }
       return;
     }
 
+    setError(null);
+    setSubmitting(true);
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    setSubmitting(false);
     setSent(true);
     if (Platform.OS !== 'web') {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
