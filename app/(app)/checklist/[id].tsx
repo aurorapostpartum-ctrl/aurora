@@ -12,6 +12,7 @@ import {
   useMockDataVersion,
 } from '../../../src/data/mockStore';
 import { formatLongDate, getChecklist, getJob, personName } from '../../../src/data/selectors';
+import { PhotoSourceSheet } from '../../../src/features/photos/PhotoSourceSheet';
 import { RoleGate } from '../../../src/navigation/RoleGate';
 import { useAuth } from '../../../src/providers/AuthProvider';
 import { colors, radius, spacing } from '../../../src/theme';
@@ -41,6 +42,7 @@ function ChecklistRecordContent() {
   const { person } = useAuth();
   useMockDataVersion();
   const [toast, setToast] = useState<string | null>(null);
+  const [photoSheetItemId, setPhotoSheetItemId] = useState<string | null>(null);
 
   const checklist = getChecklist(id);
   const job = checklist ? getJob(checklist.jobId) : undefined;
@@ -103,7 +105,12 @@ function ChecklistRecordContent() {
   };
 
   const handleAddPhoto = (itemId: string) => {
-    addChecklistItemPhoto(checklist.id, itemId, person.id);
+    setPhotoSheetItemId(itemId);
+  };
+
+  const handlePhotoPicked = (uri: string) => {
+    if (!photoSheetItemId) return;
+    addChecklistItemPhoto(checklist.id, photoSheetItemId, person.id, uri);
     setToast('Photo attached');
   };
 
@@ -233,6 +240,11 @@ function ChecklistRecordContent() {
         </View>
       </ScrollView>
 
+      <PhotoSourceSheet
+        visible={photoSheetItemId !== null}
+        onClose={() => setPhotoSheetItemId(null)}
+        onPicked={handlePhotoPicked}
+      />
       {toast ? <Toast message={toast} onHide={() => setToast(null)} /> : null}
     </Screen>
   );

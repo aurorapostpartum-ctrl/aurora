@@ -58,7 +58,8 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "SiteVault uses your photo library to attach job site photos and documents."
+          "photosPermission": "SiteVault uses your photo library to attach job site photos and documents.",
+          "cameraPermission": "SiteVault uses your camera to capture job site photos for checklists, hazard assessments, and deficiencies."
         }
       ]
     ],

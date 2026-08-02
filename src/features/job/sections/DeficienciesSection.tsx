@@ -1,34 +1,31 @@
 import { Ionicons } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
-import { useState, type Dispatch, type SetStateAction } from 'react';
-import { Platform, Pressable, StyleSheet, View } from 'react-native';
+import { router } from 'expo-router';
+import { useMemo, useState } from 'react';
+import { Pressable, StyleSheet, View } from 'react-native';
 
-import { Button, Chip, EmptyState, StatusBadge, Text, TextField } from '../../../components/ui';
-import { formatDate, personName } from '../../../data/selectors';
-import { createId } from '../../../lib/id';
-import { colors, radius, spacing } from '../../../theme';
-import type { Deficiency, DeficiencyPriority, Job, Person } from '../../../types/domain';
+import { Avatar, Button, Card, Chip, EmptyState, StatusBadge, Text } from '../../../components/ui';
+import { formatDate, getPerson, personName } from '../../../data/selectors';
+import { DeficiencyFormSheet } from '../../deficiencies/DeficiencyFormSheet';
+import { colors, spacing } from '../../../theme';
+import type { Deficiency, DeficiencyPriority, DeficiencyStatus, Job, Person } from '../../../types/domain';
 
 interface DeficienciesSectionProps {
   job: Job;
   person: Person;
   deficiencies: Deficiency[];
-  setDeficiencies: Dispatch<SetStateAction<Deficiency[]>>;
 }
 
-const STATUS_TONE: Record<Deficiency['status'], 'danger' | 'warning' | 'success'> = {
+const STATUS_TONE: Record<DeficiencyStatus, 'danger' | 'warning' | 'success'> = {
   open: 'danger',
   in_progress: 'warning',
-  resolved: 'success',
+  complete: 'success',
 };
 
-const STATUS_LABEL: Record<Deficiency['status'], string> = {
+const STATUS_LABEL: Record<DeficiencyStatus, string> = {
   open: 'Open',
   in_progress: 'In Progress',
-  resolved: 'Resolved',
+  complete: 'Complete',
 };
-
-const STATUS_CYCLE: Deficiency['status'][] = ['open', 'in_progress', 'resolved'];
 
 const PRIORITY_TONE: Record<DeficiencyPriority, 'danger' | 'warning' | 'neutral'> = {
   high: 'danger',
@@ -36,49 +33,23 @@ const PRIORITY_TONE: Record<DeficiencyPriority, 'danger' | 'warning' | 'neutral'
   low: 'neutral',
 };
 
-export function DeficienciesSection({ job, person, deficiencies, setDeficiencies }: DeficienciesSectionProps) {
+export function DeficienciesSection({ job, person, deficiencies }: DeficienciesSectionProps) {
   const [formOpen, setFormOpen] = useState(false);
-  const [title, setTitle] = useState('');
-  const [location, setLocation] = useState('');
-  const [priority, setPriority] = useState<DeficiencyPriority>('medium');
+  const [statusFilter, setStatusFilter] = useState<DeficiencyStatus | 'all'>('all');
 
-  const handleSubmit = () => {
-    if (!title.trim()) return;
-    const deficiency: Deficiency = {
-      id: createId('def'),
-      jobId: job.id,
-      title: title.trim(),
-      description: '',
-      status: 'open',
-      priority,
-      location: location.trim() || 'Unspecified',
-      reportedBy: person.id,
-      reportedAt: new Date().toISOString(),
-      photoCount: 0,
-    };
-    setDeficiencies((prev) => [deficiency, ...prev]);
-    setTitle('');
-    setLocation('');
-    setPriority('medium');
-    setFormOpen(false);
-    if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-  };
+  const filtered = useMemo(
+    () => (statusFilter === 'all' ? deficiencies : deficiencies.filter((d) => d.status === statusFilter)),
+    [deficiencies, statusFilter]
+  );
 
-  const cycleStatus = (id: string) => {
-    if (Platform.OS !== 'web') Haptics.selectionAsync();
-    setDeficiencies((prev) =>
-      prev.map((d) => {
-        if (d.id !== id) return d;
-        const nextIndex = (STATUS_CYCLE.indexOf(d.status) + 1) % STATUS_CYCLE.length;
-        const nextStatus = STATUS_CYCLE[nextIndex];
-        return {
-          ...d,
-          status: nextStatus,
-          resolvedAt: nextStatus === 'resolved' ? new Date().toISOString() : undefined,
-        };
-      })
-    );
-  };
+  const counts = useMemo(
+    () => ({
+      open: deficiencies.filter((d) => d.status === 'open').length,
+      in_progress: deficiencies.filter((d) => d.status === 'in_progress').length,
+      complete: deficiencies.filter((d) => d.status === 'complete').length,
+    }),
+    [deficiencies]
+  );
 
   return (
     <View>
@@ -86,56 +57,98 @@ export function DeficienciesSection({ job, person, deficiencies, setDeficiencies
         <Text variant="footnote" color={colors.textTertiary}>
           {deficiencies.length} {deficiencies.length === 1 ? 'deficiency' : 'deficiencies'}
         </Text>
-        <Button
-          label={formOpen ? 'Cancel' : 'Report Deficiency'}
-          variant={formOpen ? 'secondary' : 'primary'}
-          size="md"
-          fullWidth={false}
-          onPress={() => setFormOpen((v) => !v)}
+        <Button label="Report Deficiency" size="md" fullWidth={false} onPress={() => setFormOpen(true)} />
+      </View>
+
+      <View style={styles.filterRow}>
+        <Chip label="All" selected={statusFilter === 'all'} onPress={() => setStatusFilter('all')} />
+        <Chip
+          label={`Open (${counts.open})`}
+          selected={statusFilter === 'open'}
+          onPress={() => setStatusFilter('open')}
+        />
+        <Chip
+          label={`In Progress (${counts.in_progress})`}
+          selected={statusFilter === 'in_progress'}
+          onPress={() => setStatusFilter('in_progress')}
+        />
+        <Chip
+          label={`Complete (${counts.complete})`}
+          selected={statusFilter === 'complete'}
+          onPress={() => setStatusFilter('complete')}
         />
       </View>
 
-      {formOpen ? (
-        <View style={styles.form}>
-          <TextField label="What's wrong?" placeholder="e.g. Cracked slab near loading dock" value={title} onChangeText={setTitle} />
-          <TextField label="Location" placeholder="e.g. Building A, Level 2" value={location} onChangeText={setLocation} />
-          <Text variant="footnote" color={colors.textSecondary} style={styles.priorityLabel}>
-            Priority
-          </Text>
-          <View style={styles.priorityRow}>
-            {(['low', 'medium', 'high'] as DeficiencyPriority[]).map((p) => (
-              <Chip key={p} label={p[0].toUpperCase() + p.slice(1)} selected={priority === p} onPress={() => setPriority(p)} />
-            ))}
-          </View>
-          <Button label="Submit Deficiency" onPress={handleSubmit} disabled={!title.trim()} />
-        </View>
-      ) : null}
-
-      {deficiencies.length === 0 ? (
-        <EmptyState icon="alert-circle-outline" title="No deficiencies reported" />
+      {filtered.length === 0 ? (
+        <EmptyState
+          icon="alert-circle-outline"
+          title={deficiencies.length === 0 ? 'No deficiencies reported' : 'No deficiencies match this filter'}
+          message={deficiencies.length === 0 ? 'Report an issue found on site to track it through to resolution.' : undefined}
+        />
       ) : (
-        deficiencies.map((d) => (
-          <View key={d.id} style={styles.card}>
-            <View style={styles.cardHeader}>
-              <Text variant="headline" style={styles.cardTitle}>
-                {d.title}
-              </Text>
-              <StatusBadge label={d.priority[0].toUpperCase() + d.priority.slice(1)} tone={PRIORITY_TONE[d.priority]} />
-            </View>
-            <Text variant="footnote" color={colors.textSecondary}>
-              {d.location}
-            </Text>
-            <Text variant="caption1" color={colors.textTertiary} style={styles.meta}>
-              Reported by {personName(d.reportedBy)} · {formatDate(d.reportedAt)}
-              {d.resolvedAt ? ` · Resolved ${formatDate(d.resolvedAt)}` : ''}
-            </Text>
-            <Pressable onPress={() => cycleStatus(d.id)} style={styles.statusButton}>
-              <StatusBadge label={STATUS_LABEL[d.status]} tone={STATUS_TONE[d.status]} />
-              <Ionicons name="sync-outline" size={13} color={colors.textTertiary} style={styles.cycleIcon} />
+        filtered.map((d) => {
+          const assignee = d.assignedTo ? getPerson(d.assignedTo) : undefined;
+          return (
+            <Pressable
+              key={d.id}
+              onPress={() => router.push(`/(app)/deficiency/${d.id}` as never)}
+              style={styles.cardPressable}
+            >
+              {({ pressed }) => (
+                <Card style={[styles.card, pressed && styles.cardPressed]} shadowToken="xs">
+                  <View style={styles.cardHeader}>
+                    <Text variant="headline" style={styles.cardTitle} numberOfLines={2}>
+                      {d.title}
+                    </Text>
+                    <StatusBadge label={d.priority[0].toUpperCase() + d.priority.slice(1)} tone={PRIORITY_TONE[d.priority]} />
+                  </View>
+                  <Text variant="footnote" color={colors.textSecondary} numberOfLines={1}>
+                    {d.location}
+                  </Text>
+
+                  <View style={styles.metaRow}>
+                    <StatusBadge label={STATUS_LABEL[d.status]} tone={STATUS_TONE[d.status]} />
+                    {assignee ? (
+                      <View style={styles.assigneeRow}>
+                        <Avatar initials={assignee.initials} color={assignee.avatarColor} size={20} />
+                        <Text variant="footnote" color={colors.textSecondary} style={styles.assigneeLabel}>
+                          {assignee.name}
+                        </Text>
+                      </View>
+                    ) : (
+                      <Text variant="footnote" color={colors.textTertiary}>
+                        Unassigned
+                      </Text>
+                    )}
+                    {d.photoIds.length > 0 ? (
+                      <View style={styles.photoCountRow}>
+                        <Ionicons name="image-outline" size={13} color={colors.textTertiary} />
+                        <Text variant="caption1" color={colors.textTertiary} style={styles.photoCountLabel}>
+                          {d.photoIds.length}
+                        </Text>
+                      </View>
+                    ) : null}
+                  </View>
+
+                  <Text variant="caption1" color={colors.textTertiary} style={styles.reportedMeta}>
+                    Reported by {personName(d.reportedBy)} · {formatDate(d.reportedAt)}
+                    {d.completedAt ? ` · Completed ${formatDate(d.completedAt)}` : ''}
+                  </Text>
+                </Card>
+              )}
             </Pressable>
-          </View>
-        ))
+          );
+        })
       )}
+
+      <DeficiencyFormSheet
+        visible={formOpen}
+        onClose={() => setFormOpen(false)}
+        mode="create"
+        job={job}
+        actorId={person.id}
+        onSaved={(created) => router.push(`/(app)/deficiency/${created.id}` as never)}
+      />
     </View>
   );
 }
@@ -147,51 +160,53 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: spacing.md,
   },
-  form: {
-    backgroundColor: colors.surface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.surfaceBorder,
-    borderRadius: radius.md,
-    padding: spacing.md,
-    marginBottom: spacing.md,
-  },
-  priorityLabel: {
-    marginBottom: spacing.xs,
-    marginLeft: spacing.xxs,
-  },
-  priorityRow: {
+  filterRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: spacing.xs,
     marginBottom: spacing.md,
   },
-  card: {
-    backgroundColor: colors.surface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.surfaceBorder,
-    borderRadius: radius.md,
-    padding: spacing.md,
+  cardPressable: {
     marginBottom: spacing.sm,
+  },
+  card: {
+    padding: spacing.md,
+  },
+  cardPressed: {
+    opacity: 0.92,
   },
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
+    gap: spacing.sm,
     marginBottom: spacing.xxs,
   },
   cardTitle: {
     flex: 1,
-    marginRight: spacing.sm,
   },
-  meta: {
-    marginTop: spacing.xs,
-  },
-  statusButton: {
+  metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    alignSelf: 'flex-start',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
     marginTop: spacing.sm,
   },
-  cycleIcon: {
-    marginLeft: spacing.xs,
+  assigneeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  assigneeLabel: {
+    marginLeft: spacing.xxs,
+  },
+  photoCountRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  photoCountLabel: {
+    marginLeft: 2,
+  },
+  reportedMeta: {
+    marginTop: spacing.xs,
   },
 });

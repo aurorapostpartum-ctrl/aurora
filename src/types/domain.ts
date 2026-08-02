@@ -203,17 +203,27 @@ export interface JobHazardAssessment {
   currentStep: HazardAssessmentStep;
 }
 
+/** What a photo is attached to: a general Job Folder shot, or a specific record within it. */
+export type PhotoCategory = 'general' | 'checklist' | 'hazard_assessment' | 'deficiency';
+
 export interface JobPhoto {
   id: string;
   jobId: string;
+  /** Real captured/uploaded image (camera or library, native or web). Absent only for legacy seed photos, which fall back to the swatch. */
+  uri?: string;
   swatch: string;
   caption: string;
+  category: PhotoCategory;
+  /** id of the checklist/hazard assessment/deficiency this photo is attached to, when category isn't 'general'. */
+  linkedRecordId?: string;
+  /** Human label snapshot of the linked record, for display without a join. */
+  linkedRecordLabel?: string;
   uploadedBy: string;
   uploadedAt: string;
   tags: string[];
 }
 
-export type DeficiencyStatus = 'open' | 'in_progress' | 'resolved';
+export type DeficiencyStatus = 'open' | 'in_progress' | 'complete';
 export type DeficiencyPriority = 'low' | 'medium' | 'high';
 
 export interface Deficiency {
@@ -227,8 +237,9 @@ export interface Deficiency {
   reportedBy: string;
   reportedAt: string;
   assignedTo?: string;
-  resolvedAt?: string;
-  photoCount: number;
+  completedBy?: string;
+  completedAt?: string;
+  photoIds: string[];
 }
 
 export interface JobNote {
@@ -259,7 +270,9 @@ export type ActivityType =
   | 'hazard_assessment_completed'
   | 'photo_uploaded'
   | 'deficiency_reported'
-  | 'deficiency_resolved'
+  | 'deficiency_assigned'
+  | 'deficiency_status_changed'
+  | 'deficiency_completed'
   | 'note_added'
   | 'announcement_posted'
   | 'job_created'

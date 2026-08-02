@@ -112,19 +112,17 @@ function SearchContent() {
       }
     }
 
-    if (person?.role === 'manager') {
-      for (const d of DEFICIENCIES) {
-        if (!scopedJobIds.has(d.jobId)) continue;
-        if (d.title.toLowerCase().includes(q) || d.location.toLowerCase().includes(q)) {
-          out.push({
-            kind: 'deficiency',
-            id: d.id,
-            title: d.title,
-            subtitle: `${getJob(d.jobId)?.name ?? ''} · ${d.location}`,
-            jobId: d.jobId,
-            section: 'deficiencies',
-          });
-        }
+    for (const d of DEFICIENCIES) {
+      if (!scopedJobIds.has(d.jobId)) continue;
+      if (d.title.toLowerCase().includes(q) || d.location.toLowerCase().includes(q)) {
+        out.push({
+          kind: 'deficiency',
+          id: d.id,
+          title: d.title,
+          subtitle: `${getJob(d.jobId)?.name ?? ''} · ${d.location}`,
+          jobId: d.jobId,
+          section: 'deficiencies',
+        });
       }
     }
 

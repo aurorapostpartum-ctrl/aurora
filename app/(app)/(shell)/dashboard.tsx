@@ -24,7 +24,9 @@ const ACTIVITY_ICON: Record<ActivityType, keyof typeof Ionicons.glyphMap> = {
   hazard_assessment_completed: 'shield-checkmark-outline',
   photo_uploaded: 'image-outline',
   deficiency_reported: 'alert-circle-outline',
-  deficiency_resolved: 'checkmark-circle-outline',
+  deficiency_assigned: 'person-add-outline',
+  deficiency_status_changed: 'sync-outline',
+  deficiency_completed: 'checkmark-circle-outline',
   note_added: 'chatbubble-ellipses-outline',
   announcement_posted: 'megaphone-outline',
   job_created: 'folder-open-outline',
@@ -46,7 +48,7 @@ function DashboardContent() {
 
   const stats = useMemo(() => {
     const activeJobs = JOBS.filter((j) => j.status === 'active').length;
-    const openDeficiencies = DEFICIENCIES.filter((d) => d.status !== 'resolved').length;
+    const openDeficiencies = DEFICIENCIES.filter((d) => d.status !== 'complete').length;
     const assessmentsThisWeek =
       JOB_CHECKLISTS.filter((c) => isWithinLastDays(c.generatedAt, 7)).length +
       JOB_HAZARD_ASSESSMENTS.filter((h) => isWithinLastDays(h.generatedAt, 7)).length;

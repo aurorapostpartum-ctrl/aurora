@@ -18,6 +18,7 @@ import {
   useMockDataVersion,
 } from '../../../src/data/mockStore';
 import { formatLongDate, getHazardAssessment, getJob, personName } from '../../../src/data/selectors';
+import { PhotoSourceSheet } from '../../../src/features/photos/PhotoSourceSheet';
 import { RoleGate } from '../../../src/navigation/RoleGate';
 import { useAuth } from '../../../src/providers/AuthProvider';
 import { colors, radius, spacing } from '../../../src/theme';
@@ -377,6 +378,7 @@ function ControlItemCard({ item, recordId }: { item: JobHazardItem; recordId: st
 
 function NotesStep({ record, person }: { record: JobHazardAssessment; person: Person }) {
   const [draft, setDraft] = useState(record.notes);
+  const [photoSheetItemId, setPhotoSheetItemId] = useState<string | null>(null);
   const photoItems = record.hazards.filter((h) => h.identified && h.requiresPhoto);
 
   return (
@@ -413,7 +415,7 @@ function NotesStep({ record, person }: { record: JobHazardAssessment; person: Pe
                 >
                   {item.hazard} — {count > 0 ? `${count} photo${count === 1 ? '' : 's'} attached` : 'Photo required'}
                 </Text>
-                <Pressable onPress={() => addHazardItemPhoto(record.id, item.id, person.id)} hitSlop={6}>
+                <Pressable onPress={() => setPhotoSheetItemId(item.id)} hitSlop={6}>
                   <Text variant="footnote" color={colors.accentStrong}>
                     Add Photo
                   </Text>
@@ -423,6 +425,14 @@ function NotesStep({ record, person }: { record: JobHazardAssessment; person: Pe
           })}
         </>
       ) : null}
+
+      <PhotoSourceSheet
+        visible={photoSheetItemId !== null}
+        onClose={() => setPhotoSheetItemId(null)}
+        onPicked={(uri) => {
+          if (photoSheetItemId) addHazardItemPhoto(record.id, photoSheetItemId, person.id, uri);
+        }}
+      />
     </View>
   );
 }

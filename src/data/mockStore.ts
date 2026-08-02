@@ -3,6 +3,7 @@ import { useSyncExternalStore } from 'react';
 import {
   ACTIVITY,
   CHECKLIST_TEMPLATES,
+  DEFICIENCIES,
   DOCUMENTS,
   HAZARD_TEMPLATES,
   JOBS,
@@ -18,6 +19,9 @@ import type {
   ChecklistItemStatus,
   ChecklistTemplate,
   ChecklistTemplateSection,
+  Deficiency,
+  DeficiencyPriority,
+  DeficiencyStatus,
   DocumentCategory,
   DocumentFileType,
   HazardAssessmentStep,
@@ -31,6 +35,7 @@ import type {
   JobHazardItem,
   JobPhoto,
   JobStatus,
+  PhotoCategory,
   ProjectType,
   TemplateVisibility,
 } from '../types/domain';
@@ -483,14 +488,22 @@ export interface AddPhotoInput {
   caption: string;
   uploadedBy: string;
   tags?: string[];
+  uri?: string;
+  category?: PhotoCategory;
+  linkedRecordId?: string;
+  linkedRecordLabel?: string;
 }
 
 export function addPhoto(input: AddPhotoInput): JobPhoto {
   const photo: JobPhoto = {
     id: createId('ph'),
     jobId: input.jobId,
+    uri: input.uri,
     swatch: PHOTO_PALETTE[PHOTOS.length % PHOTO_PALETTE.length],
     caption: input.caption,
+    category: input.category ?? 'general',
+    linkedRecordId: input.linkedRecordId,
+    linkedRecordLabel: input.linkedRecordLabel,
     uploadedBy: input.uploadedBy,
     uploadedAt: demoNow().toISOString(),
     tags: input.tags ?? [],
@@ -578,7 +591,12 @@ export function updateChecklistItemNote(checklistId: string, itemId: string, not
   return updated;
 }
 
-export function addChecklistItemPhoto(checklistId: string, itemId: string, uploadedBy: string): JobChecklist | undefined {
+export function addChecklistItemPhoto(
+  checklistId: string,
+  itemId: string,
+  uploadedBy: string,
+  uri?: string
+): JobChecklist | undefined {
   const index = JOB_CHECKLISTS.findIndex((c) => c.id === checklistId);
   if (index === -1) return undefined;
 
@@ -586,7 +604,16 @@ export function addChecklistItemPhoto(checklistId: string, itemId: string, uploa
   const item = checklist.items.find((i) => i.id === itemId);
   if (!item) return undefined;
 
-  const photo = addPhoto({ jobId: checklist.jobId, caption: item.text, uploadedBy, tags: ['checklist'] });
+  const photo = addPhoto({
+    jobId: checklist.jobId,
+    caption: item.text,
+    uploadedBy,
+    tags: ['checklist'],
+    uri,
+    category: 'checklist',
+    linkedRecordId: checklist.id,
+    linkedRecordLabel: checklist.templateName,
+  });
 
   const updated: JobChecklist = {
     ...checklist,
@@ -876,12 +903,26 @@ export function updateHazardItemControl(recordId: string, itemId: string, contro
   }));
 }
 
-export function addHazardItemPhoto(recordId: string, itemId: string, uploadedBy: string): JobHazardAssessment | undefined {
+export function addHazardItemPhoto(
+  recordId: string,
+  itemId: string,
+  uploadedBy: string,
+  uri?: string
+): JobHazardAssessment | undefined {
   const record = JOB_HAZARD_ASSESSMENTS.find((r) => r.id === recordId);
   const item = record?.hazards.find((h) => h.id === itemId);
   if (!record || !item) return undefined;
 
-  const photo = addPhoto({ jobId: record.jobId, caption: item.hazard, uploadedBy, tags: ['hazard-assessment'] });
+  const photo = addPhoto({
+    jobId: record.jobId,
+    caption: item.hazard,
+    uploadedBy,
+    tags: ['hazard-assessment'],
+    uri,
+    category: 'hazard_assessment',
+    linkedRecordId: record.id,
+    linkedRecordLabel: record.templateName,
+  });
 
   return updateHazardAssessment(recordId, (r) => ({
     ...r,
@@ -928,4 +969,146 @@ export function submitHazardAssessment(recordId: string, submittedBy: string): J
   });
   emitChange();
   return updated;
+}
+
+// --- Deficiencies ---
+
+export interface CreateDeficiencyInput {
+  jobId: string;
+  title: string;
+  description: string;
+  location: string;
+  priority: DeficiencyPriority;
+  reportedBy: string;
+  assignedTo?: string;
+}
+
+export function createDeficiency(input: CreateDeficiencyInput): Deficiency {
+  const now = demoNow().toISOString();
+  const deficiency: Deficiency = {
+    id: createId('def'),
+    jobId: input.jobId,
+    title: input.title.trim(),
+    description: input.description.trim(),
+    status: 'open',
+    priority: input.priority,
+    location: input.location.trim() || 'Unspecified',
+    reportedBy: input.reportedBy,
+    reportedAt: now,
+    assignedTo: input.assignedTo,
+    photoIds: [],
+  };
+  DEFICIENCIES.unshift(deficiency);
+  ACTIVITY.unshift({
+    id: createId('act'),
+    jobId: input.jobId,
+    type: 'deficiency_reported',
+    actorId: input.reportedBy,
+    createdAt: now,
+    summary: `Reported deficiency: ${deficiency.title}`,
+  });
+  emitChange();
+  return deficiency;
+}
+
+function updateDeficiencyRecord(
+  deficiencyId: string,
+  updater: (deficiency: Deficiency) => Deficiency
+): Deficiency | undefined {
+  const index = DEFICIENCIES.findIndex((d) => d.id === deficiencyId);
+  if (index === -1) return undefined;
+
+  const updated = updater(DEFICIENCIES[index]);
+  DEFICIENCIES[index] = updated;
+  emitChange();
+  return updated;
+}
+
+export interface UpdateDeficiencyInput {
+  title: string;
+  description: string;
+  location: string;
+  priority: DeficiencyPriority;
+}
+
+export function updateDeficiency(deficiencyId: string, input: UpdateDeficiencyInput): Deficiency | undefined {
+  return updateDeficiencyRecord(deficiencyId, (d) => ({
+    ...d,
+    title: input.title.trim(),
+    description: input.description.trim(),
+    location: input.location.trim() || 'Unspecified',
+    priority: input.priority,
+  }));
+}
+
+export function assignDeficiency(deficiencyId: string, assigneeId: string | undefined, actorId: string): Deficiency | undefined {
+  const deficiency = DEFICIENCIES.find((d) => d.id === deficiencyId);
+  if (!deficiency) return undefined;
+  const now = demoNow().toISOString();
+
+  const updated = updateDeficiencyRecord(deficiencyId, (d) => ({ ...d, assignedTo: assigneeId }));
+
+  ACTIVITY.unshift({
+    id: createId('act'),
+    jobId: deficiency.jobId,
+    type: 'deficiency_assigned',
+    actorId,
+    createdAt: now,
+    summary: assigneeId
+      ? `Assigned deficiency "${deficiency.title}"`
+      : `Unassigned deficiency "${deficiency.title}"`,
+  });
+  emitChange();
+  return updated;
+}
+
+const STATUS_LABEL_FOR_ACTIVITY: Record<DeficiencyStatus, string> = {
+  open: 'Open',
+  in_progress: 'In Progress',
+  complete: 'Complete',
+};
+
+export function setDeficiencyStatus(deficiencyId: string, status: DeficiencyStatus, actorId: string): Deficiency | undefined {
+  const deficiency = DEFICIENCIES.find((d) => d.id === deficiencyId);
+  if (!deficiency) return undefined;
+  const now = demoNow().toISOString();
+
+  const updated = updateDeficiencyRecord(deficiencyId, (d) => ({
+    ...d,
+    status,
+    completedBy: status === 'complete' ? actorId : undefined,
+    completedAt: status === 'complete' ? now : undefined,
+  }));
+
+  ACTIVITY.unshift({
+    id: createId('act'),
+    jobId: deficiency.jobId,
+    type: status === 'complete' ? 'deficiency_completed' : 'deficiency_status_changed',
+    actorId,
+    createdAt: now,
+    summary:
+      status === 'complete'
+        ? `Marked complete: ${deficiency.title}`
+        : `Marked ${STATUS_LABEL_FOR_ACTIVITY[status]}: ${deficiency.title}`,
+  });
+  emitChange();
+  return updated;
+}
+
+export function addDeficiencyPhoto(deficiencyId: string, uploadedBy: string, uri?: string): Deficiency | undefined {
+  const deficiency = DEFICIENCIES.find((d) => d.id === deficiencyId);
+  if (!deficiency) return undefined;
+
+  const photo = addPhoto({
+    jobId: deficiency.jobId,
+    caption: deficiency.title,
+    uploadedBy,
+    tags: ['deficiency'],
+    uri,
+    category: 'deficiency',
+    linkedRecordId: deficiency.id,
+    linkedRecordLabel: deficiency.title,
+  });
+
+  return updateDeficiencyRecord(deficiencyId, (d) => ({ ...d, photoIds: [...d.photoIds, photo.id] }));
 }

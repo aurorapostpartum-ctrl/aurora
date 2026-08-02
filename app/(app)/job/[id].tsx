@@ -34,7 +34,7 @@ import { PhotosSection } from '../../../src/features/job/sections/PhotosSection'
 import { ActivitySection } from '../../../src/features/job/sections/ActivitySection';
 import { useAuth } from '../../../src/providers/AuthProvider';
 import { colors, spacing } from '../../../src/theme';
-import type { Deficiency, JobAnnouncement, JobNote, ProjectCompletion } from '../../../src/types/domain';
+import type { JobAnnouncement, JobNote, ProjectCompletion } from '../../../src/types/domain';
 
 type SectionKey =
   | 'overview'
@@ -61,10 +61,10 @@ const SECTION_LABEL: Record<SectionKey, string> = {
   completion: 'Project Completion',
 };
 
-// Deficiencies and Project Completion are management concerns — employees
-// don't get a card for them on the home grid, and can't reach them by deep
-// link (search, a stale URL, etc.) either.
-const MANAGER_ONLY_SECTIONS = new Set<SectionKey>(['deficiencies', 'completion']);
+// Project Completion is a management concern — employees don't get a card
+// for it on the home grid, and can't reach it by deep link (search, a
+// stale URL, etc.) either.
+const MANAGER_ONLY_SECTIONS = new Set<SectionKey>(['completion']);
 
 export default function JobDetailScreen() {
   const { id, section } = useLocalSearchParams<{ id: string; section?: string }>();
@@ -87,9 +87,6 @@ export default function JobDetailScreen() {
   const [uploadDocOpen, setUploadDocOpen] = useState(false);
   const [moreActionsOpen, setMoreActionsOpen] = useState(false);
 
-  const [deficiencies, setDeficiencies] = useState<Deficiency[]>(() =>
-    job ? deficienciesForJob(job.id) : []
-  );
   const [notes, setNotes] = useState<JobNote[]>(() => (job ? notesForJob(job.id) : []));
   const [announcements, setAnnouncements] = useState<JobAnnouncement[]>(() =>
     job ? announcementsForJob(job.id) : []
@@ -102,6 +99,7 @@ export default function JobDetailScreen() {
   const checklists = job ? checklistsForJob(job.id) : [];
   const hazards = job ? hazardAssessmentsForJob(job.id) : [];
   const photos = job ? photosForJob(job.id) : [];
+  const deficiencies = job ? deficienciesForJob(job.id) : [];
   const activity = useMemo(() => (job ? activityForJob(job.id) : []), [job, version]);
 
   if (!job || !person) {
@@ -112,7 +110,7 @@ export default function JobDetailScreen() {
     );
   }
 
-  const openDeficiencyCount = deficiencies.filter((d) => d.status !== 'resolved').length;
+  const openDeficiencyCount = deficiencies.filter((d) => d.status !== 'complete').length;
   const jobPeople = [...job.managerIds, ...job.employeeIds]
     .map((pid) => getPerson(pid))
     .filter((p): p is NonNullable<typeof p> => Boolean(p))
@@ -270,13 +268,8 @@ export default function JobDetailScreen() {
           {activeSection === 'photos' ? (
             <PhotosSection photos={photos} job={job} person={person} />
           ) : null}
-          {activeSection === 'deficiencies' && isManager ? (
-            <DeficienciesSection
-              job={job}
-              person={person}
-              deficiencies={deficiencies}
-              setDeficiencies={setDeficiencies}
-            />
+          {activeSection === 'deficiencies' ? (
+            <DeficienciesSection job={job} person={person} deficiencies={deficiencies} />
           ) : null}
           {activeSection === 'notes' ? (
             <NotesSection job={job} person={person} notes={notes} setNotes={setNotes} />
@@ -294,9 +287,10 @@ export default function JobDetailScreen() {
             <CompletionSection
               job={job}
               isManager={isManager}
+              actorId={person.id}
               completion={completion}
               setCompletion={setCompletion}
-              openDeficiencyCount={openDeficiencyCount}
+              openDeficiencies={deficiencies.filter((d) => d.status !== 'complete')}
             />
           ) : null}
         </View>

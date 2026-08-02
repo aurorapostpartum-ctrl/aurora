@@ -1,30 +1,36 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { router } from 'expo-router';
 import { type Dispatch, type SetStateAction } from 'react';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
 
 import { Button, GlassCard, StatusBadge, Text, TextField } from '../../../components/ui';
-import { formatDate } from '../../../data/selectors';
+import { formatDate, personName } from '../../../data/selectors';
 import { colors, spacing } from '../../../theme';
-import type { Job, ProjectCompletion } from '../../../types/domain';
+import type { Deficiency, Job, ProjectCompletion } from '../../../types/domain';
 
 interface CompletionSectionProps {
   job: Job;
   isManager: boolean;
+  actorId: string;
   completion: ProjectCompletion | undefined;
   setCompletion: Dispatch<SetStateAction<ProjectCompletion | undefined>>;
-  openDeficiencyCount: number;
+  openDeficiencies: Deficiency[];
 }
+
+const PRIORITY_TONE = { high: 'danger', medium: 'warning', low: 'neutral' } as const;
 
 export function CompletionSection({
   job,
   isManager,
+  actorId,
   completion,
   setCompletion,
-  openDeficiencyCount,
+  openDeficiencies,
 }: CompletionSectionProps) {
   if (!completion) return null;
 
+  const openDeficiencyCount = openDeficiencies.length;
   const allDone = completion.checklist.every((item) => item.done);
   const canComplete = allDone && openDeficiencyCount === 0 && !completion.isComplete;
 
@@ -47,7 +53,7 @@ export function CompletionSection({
     if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setCompletion((prev) =>
       prev
-        ? { ...prev, isComplete: true, completedAt: new Date().toISOString(), completedBy: 'you' }
+        ? { ...prev, isComplete: true, completedAt: new Date().toISOString(), completedBy: actorId }
         : prev
     );
   };
@@ -89,9 +95,32 @@ export function CompletionSection({
           ))}
 
           {openDeficiencyCount > 0 ? (
-            <Text variant="footnote" color={colors.danger} style={styles.warning}>
-              {openDeficiencyCount} unresolved {openDeficiencyCount === 1 ? 'deficiency' : 'deficiencies'} must be resolved before completion.
-            </Text>
+            <>
+              <Text variant="footnote" color={colors.danger} style={styles.warning}>
+                {openDeficiencyCount} open {openDeficiencyCount === 1 ? 'deficiency' : 'deficiencies'} must be marked
+                complete before this project can be closed out.
+              </Text>
+              <View style={styles.deficiencyList}>
+                {openDeficiencies.map((d) => (
+                  <Pressable
+                    key={d.id}
+                    onPress={() => router.push(`/(app)/deficiency/${d.id}` as never)}
+                    style={styles.deficiencyRow}
+                  >
+                    <View style={styles.deficiencyText}>
+                      <Text variant="subhead" numberOfLines={1}>
+                        {d.title}
+                      </Text>
+                      <Text variant="caption1" color={colors.textTertiary} numberOfLines={1}>
+                        {d.assignedTo ? `Assigned to ${personName(d.assignedTo)}` : 'Unassigned'}
+                      </Text>
+                    </View>
+                    <StatusBadge label={d.priority[0].toUpperCase() + d.priority.slice(1)} tone={PRIORITY_TONE[d.priority]} />
+                    <Ionicons name="chevron-forward" size={14} color={colors.textTertiary} style={styles.deficiencyChevron} />
+                  </Pressable>
+                ))}
+              </View>
+            </>
           ) : null}
         </View>
       </GlassCard>
@@ -165,6 +194,25 @@ const styles = StyleSheet.create({
   },
   warning: {
     marginTop: spacing.sm,
+  },
+  deficiencyList: {
+    marginTop: spacing.sm,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.divider,
+    paddingTop: spacing.xs,
+  },
+  deficiencyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: spacing.xs + 2,
+    gap: spacing.xs,
+  },
+  deficiencyText: {
+    flex: 1,
+    marginRight: spacing.xs,
+  },
+  deficiencyChevron: {
+    marginLeft: 2,
   },
   textarea: {
     minHeight: 90,

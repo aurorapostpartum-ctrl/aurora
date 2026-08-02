@@ -60,8 +60,8 @@ export function OverviewSection({
   const hazardsComplete = hazards.filter((h) => h.status === 'completed').length;
   const hazardsThisWeek = hazards.filter((h) => isWithinLastDays(h.generatedAt, 7)).length;
 
-  const deficienciesOpen = deficiencies.filter((d) => d.status !== 'resolved').length;
-  const deficienciesResolved = deficiencies.filter((d) => d.status === 'resolved').length;
+  const deficienciesOpen = deficiencies.filter((d) => d.status !== 'complete').length;
+  const deficienciesComplete = deficiencies.filter((d) => d.status === 'complete').length;
 
   const completionDone = completion?.checklist.filter((i) => i.done).length ?? 0;
   const completionTotal = completion?.checklist.length ?? 0;
@@ -136,16 +136,14 @@ export function OverviewSection({
           onPress={() => onJump('photos')}
         />
 
-        {isManager ? (
-          <SectionCard
-            icon="alert-circle-outline"
-            title="Deficiencies"
-            tone={deficienciesOpen > 0 ? colors.danger : colors.success}
-            primary={`${deficienciesOpen} open`}
-            secondary={`${deficienciesResolved} completed`}
-            onPress={() => onJump('deficiencies')}
-          />
-        ) : null}
+        <SectionCard
+          icon="alert-circle-outline"
+          title="Deficiencies"
+          tone={deficienciesOpen > 0 ? colors.danger : colors.success}
+          primary={`${deficienciesOpen} open`}
+          secondary={`${deficienciesComplete} completed`}
+          onPress={() => onJump('deficiencies')}
+        />
 
         {isManager ? (
           <SectionCard

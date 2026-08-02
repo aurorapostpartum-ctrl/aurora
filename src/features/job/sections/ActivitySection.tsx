@@ -16,7 +16,9 @@ const ACTIVITY_ICON: Record<ActivityType, keyof typeof Ionicons.glyphMap> = {
   hazard_assessment_completed: 'shield-checkmark-outline',
   photo_uploaded: 'image-outline',
   deficiency_reported: 'alert-circle-outline',
-  deficiency_resolved: 'checkmark-circle-outline',
+  deficiency_assigned: 'person-add-outline',
+  deficiency_status_changed: 'sync-outline',
+  deficiency_completed: 'checkmark-circle-outline',
   note_added: 'chatbubble-ellipses-outline',
   announcement_posted: 'megaphone-outline',
   job_created: 'folder-open-outline',
@@ -45,7 +47,10 @@ export function ActivitySection({ activity }: { activity: ActivityEntry[] }) {
                 {personName(entry.actorId)}
               </Text>{' '}
               <Text variant="subhead" color={colors.textSecondary}>
-                {entry.summary.replace(/^(Uploaded|Reported|Generated|Completed|Resolved|Posted) /, (m) => m.toLowerCase())}
+                {entry.summary.replace(
+                  /^(Uploaded|Reported|Generated|Completed|Resolved|Posted|Assigned|Unassigned|Marked|Submitted) /,
+                  (m) => m.toLowerCase()
+                )}
               </Text>
             </Text>
             <Text variant="caption1" color={colors.textTertiary} style={styles.time}>

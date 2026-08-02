@@ -73,6 +73,11 @@ export function deficienciesForJob(jobId: string) {
   return DEFICIENCIES.filter((d) => d.jobId === jobId);
 }
 
+export function getDeficiency(id: string | undefined) {
+  if (!id) return undefined;
+  return DEFICIENCIES.find((d) => d.id === id);
+}
+
 export function notesForJob(jobId: string) {
   return NOTES.filter((n) => n.jobId === jobId);
 }

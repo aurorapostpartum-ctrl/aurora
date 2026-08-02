@@ -29,7 +29,7 @@ function HomeContent() {
     const ids = new Set(myJobs.map((j) => j.id));
     return {
       activeJobs: myJobs.filter((j) => j.status === 'active').length,
-      openDeficiencies: DEFICIENCIES.filter((d) => ids.has(d.jobId) && d.status !== 'resolved').length,
+      openDeficiencies: DEFICIENCIES.filter((d) => ids.has(d.jobId) && d.status !== 'complete').length,
     };
   }, [myJobs]);
 
