@@ -98,7 +98,7 @@ function NewJobContent() {
   return (
     <Screen glow={false}>
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} hitSlop={12} style={styles.backButton}>
+        <Pressable onPress={() => router.back()} hitSlop={12} style={styles.backButton} accessibilityLabel="Go back">
           <Ionicons name="chevron-back" size={22} color={colors.textPrimary} />
         </Pressable>
       </View>

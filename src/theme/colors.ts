@@ -14,7 +14,7 @@ export const colors = {
   paperBorder: 'rgba(17,17,17,0.12)',
   ink: '#141414',
   inkSecondary: 'rgba(20,20,20,0.64)',
-  inkTertiary: 'rgba(20,20,20,0.42)',
+  inkTertiary: 'rgba(20,20,20,0.62)',
 
   accent: '#2F6FED',
   accentMuted: 'rgba(47,111,237,0.16)',
@@ -30,7 +30,7 @@ export const colors = {
 
   textPrimary: '#FFFFFF',
   textSecondary: 'rgba(255,255,255,0.64)',
-  textTertiary: 'rgba(255,255,255,0.40)',
+  textTertiary: 'rgba(255,255,255,0.46)',
   textOnAccent: '#FFFFFF',
 
   divider: 'rgba(255,255,255,0.09)',

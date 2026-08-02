@@ -31,7 +31,7 @@ export function Modal({ visible, title, onClose, children, footer, maxWidth = 48
               <Text variant="title3" style={styles.title}>
                 {title}
               </Text>
-              <Pressable onPress={onClose} hitSlop={10} style={styles.closeButton}>
+              <Pressable onPress={onClose} hitSlop={10} style={styles.closeButton} accessibilityLabel="Close">
                 <Ionicons name="close" size={18} color={colors.textSecondary} />
               </Pressable>
             </View>

@@ -141,7 +141,7 @@ export function UploadHazardFormSheet({ visible, onClose, actorId }: UploadHazar
             </Text>
           </View>
           {file ? (
-            <Pressable onPress={() => setFile(null)} hitSlop={8}>
+            <Pressable onPress={() => setFile(null)} hitSlop={8} accessibilityLabel="Remove file">
               <Ionicons name="close" size={16} color={colors.textTertiary} />
             </Pressable>
           ) : null}

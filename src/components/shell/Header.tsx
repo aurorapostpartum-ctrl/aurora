@@ -72,7 +72,7 @@ export function Header({ title, isSidebarLayout, unreadCount, onAvatarPress }: H
 
         <SyncStatusPill />
 
-        <Pressable onPress={onAvatarPress} hitSlop={6}>
+        <Pressable onPress={onAvatarPress} hitSlop={6} accessibilityLabel="Account menu">
           <Avatar initials={person.initials} color={person.avatarColor} size={32} />
         </Pressable>
       </View>

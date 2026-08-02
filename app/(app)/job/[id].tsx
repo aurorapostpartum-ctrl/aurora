@@ -146,7 +146,7 @@ export default function JobDetailScreen() {
           ) : null}
           <HeaderAction icon="cloud-upload-outline" label="Upload" showLabel onPress={() => setUploadDocOpen(true)} />
           {isManager ? (
-            <Pressable onPress={() => setMoreActionsOpen(true)} hitSlop={10} style={styles.moreButton}>
+            <Pressable onPress={() => setMoreActionsOpen(true)} hitSlop={10} style={styles.moreButton} accessibilityLabel="More actions">
               <Ionicons name="ellipsis-horizontal" size={18} color={colors.textPrimary} />
             </Pressable>
           ) : null}

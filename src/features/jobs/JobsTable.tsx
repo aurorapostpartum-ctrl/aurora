@@ -94,6 +94,7 @@ export function JobsTable({ jobs }: JobsTableProps) {
           }}
           hitSlop={10}
           style={styles.editButton}
+          accessibilityLabel={`Edit ${job.name}`}
         >
           <Ionicons name="pencil-outline" size={15} color={colors.textSecondary} />
         </Pressable>
