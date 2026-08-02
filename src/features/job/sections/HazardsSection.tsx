@@ -5,6 +5,7 @@ import { Platform, Pressable, StyleSheet, View } from 'react-native';
 
 import { Avatar, Button, EmptyState, SelectModal, StatusBadge, Text } from '../../../components/ui';
 import { HAZARD_TEMPLATES } from '../../../data/company';
+import { flattenHazardTemplateSections } from '../../../data/mockStore';
 import { formatDate, getPerson, personName } from '../../../data/selectors';
 import { createId } from '../../../lib/id';
 import { colors, radius, spacing } from '../../../theme';
@@ -20,6 +21,10 @@ interface HazardsSectionProps {
 export function HazardsSection({ job, person, hazards, setHazards }: HazardsSectionProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [templatePickerOpen, setTemplatePickerOpen] = useState(false);
+
+  const availableTemplates = HAZARD_TEMPLATES.filter(
+    (t) => !t.archived && (t.visibility === 'company' || t.createdBy === person.id)
+  );
 
   const handleGenerate = (templateId: string) => {
     const template = HAZARD_TEMPLATES.find((t) => t.id === templateId);
@@ -37,12 +42,7 @@ export function HazardsSection({ job, person, hazards, setHazards }: HazardsSect
       generatedAt: now.toISOString(),
       status: 'in_progress',
       crewSignoff: [],
-      hazards: template.hazards.map((h) => ({
-        id: h.id,
-        hazard: h.hazard,
-        controlMeasure: h.controlMeasure,
-        acknowledged: false,
-      })),
+      hazards: flattenHazardTemplateSections(template.sections),
     };
 
     setHazards((prev) => [record, ...prev]);
@@ -173,7 +173,7 @@ export function HazardsSection({ job, person, hazards, setHazards }: HazardsSect
       <SelectModal
         visible={templatePickerOpen}
         title="Generate Hazard Assessment"
-        options={HAZARD_TEMPLATES.map((t) => ({ label: `${t.name} · ${t.trade}`, value: t.id }))}
+        options={availableTemplates.map((t) => ({ label: `${t.name} · ${t.trade}`, value: t.id }))}
         selectedValue={null}
         onSelect={handleGenerate}
         onClose={() => setTemplatePickerOpen(false)}

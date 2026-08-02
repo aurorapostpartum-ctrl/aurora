@@ -20,9 +20,13 @@ import type {
   ChecklistTemplateSection,
   DocumentCategory,
   DocumentFileType,
+  HazardAssessmentTemplate,
+  HazardSourceFileType,
+  HazardTemplateSection,
   Job,
   JobChecklist,
   JobDocument,
+  JobHazardItem,
   JobPhoto,
   JobStatus,
   ProjectType,
@@ -121,12 +125,7 @@ export function createJob(input: CreateJobInput): Job {
       generatedAt: now,
       status: 'in_progress',
       crewSignoff: [],
-      hazards: template.hazards.map((h) => ({
-        id: h.id,
-        hazard: h.hazard,
-        controlMeasure: h.controlMeasure,
-        acknowledged: false,
-      })),
+      hazards: flattenHazardTemplateSections(template.sections),
     });
     ACTIVITY.unshift({
       id: createId('act'),
@@ -635,6 +634,159 @@ export function submitChecklist(checklistId: string, submittedBy: string): JobCh
     createdAt: now,
     summary: `Submitted ${checklist.templateName}`,
   });
+  emitChange();
+  return updated;
+}
+
+/**
+ * Mirrors flattenChecklistTemplateSections: a generated JobHazardAssessment
+ * keeps its own independent flat list, so a later template edit never
+ * touches an already-generated record.
+ */
+export function flattenHazardTemplateSections(sections: HazardTemplateSection[]): JobHazardItem[] {
+  const items: JobHazardItem[] = [];
+  for (const section of sections) {
+    for (const item of section.items) {
+      items.push({
+        id: item.id,
+        hazard: item.hazard,
+        controlMeasure: item.controlMeasure,
+        acknowledged: false,
+        sectionName: section.name,
+        required: item.required,
+        requiresPhoto: item.requiresPhoto,
+      });
+    }
+  }
+  return items;
+}
+
+export interface HazardTemplateSectionInput {
+  name: string;
+  items: {
+    hazard: string;
+    controlMeasure: string;
+    required: boolean;
+    requiresPhoto: boolean;
+    notes?: string;
+  }[];
+}
+
+export interface CreateHazardTemplateInput {
+  name: string;
+  trade: string;
+  description: string;
+  sections: HazardTemplateSectionInput[];
+  createdBy: string;
+  visibility: TemplateVisibility;
+  requiresSignature: boolean;
+  sourceFileName?: string;
+  sourceFileType?: HazardSourceFileType;
+}
+
+function buildHazardSections(sections: HazardTemplateSectionInput[]): HazardTemplateSection[] {
+  return sections
+    .filter((s) => s.items.length > 0)
+    .map((section) => ({
+      id: createId('sec'),
+      name: section.name.trim() || 'Untitled Section',
+      items: section.items
+        .filter((i) => i.hazard.trim().length > 0)
+        .map((item) => ({
+          id: createId('haz'),
+          hazard: item.hazard.trim(),
+          controlMeasure: item.controlMeasure.trim(),
+          required: item.required,
+          requiresPhoto: item.requiresPhoto,
+          notes: item.notes?.trim() || undefined,
+        })),
+    }));
+}
+
+export function createHazardTemplate(input: CreateHazardTemplateInput): HazardAssessmentTemplate {
+  const now = demoNow().toISOString();
+  const template: HazardAssessmentTemplate = {
+    id: createId('tmpl-haz'),
+    name: input.name.trim(),
+    trade: input.trade.trim() || 'General',
+    description: input.description.trim(),
+    sections: buildHazardSections(input.sections),
+    createdBy: input.createdBy,
+    createdAt: now,
+    updatedAt: now,
+    visibility: input.visibility,
+    archived: false,
+    requiresSignature: input.requiresSignature,
+    sourceFileName: input.sourceFileName,
+    sourceFileType: input.sourceFileType,
+  };
+  HAZARD_TEMPLATES.unshift(template);
+  emitChange();
+  return template;
+}
+
+export interface UpdateHazardTemplateInput {
+  name: string;
+  trade: string;
+  description: string;
+  sections: HazardTemplateSectionInput[];
+  visibility: TemplateVisibility;
+  requiresSignature: boolean;
+}
+
+export function updateHazardTemplate(
+  templateId: string,
+  input: UpdateHazardTemplateInput
+): HazardAssessmentTemplate | undefined {
+  const index = HAZARD_TEMPLATES.findIndex((t) => t.id === templateId);
+  if (index === -1) return undefined;
+
+  const updated: HazardAssessmentTemplate = {
+    ...HAZARD_TEMPLATES[index],
+    name: input.name.trim(),
+    trade: input.trade.trim() || 'General',
+    description: input.description.trim(),
+    sections: buildHazardSections(input.sections),
+    visibility: input.visibility,
+    requiresSignature: input.requiresSignature,
+    updatedAt: demoNow().toISOString(),
+  };
+  HAZARD_TEMPLATES[index] = updated;
+  emitChange();
+  return updated;
+}
+
+export function duplicateHazardTemplate(templateId: string, actorId: string): HazardAssessmentTemplate | undefined {
+  const source = HAZARD_TEMPLATES.find((t) => t.id === templateId);
+  if (!source) return undefined;
+
+  return createHazardTemplate({
+    name: `${source.name} (Copy)`,
+    trade: source.trade,
+    description: source.description,
+    sections: source.sections.map((section) => ({
+      name: section.name,
+      items: section.items.map((item) => ({
+        hazard: item.hazard,
+        controlMeasure: item.controlMeasure,
+        required: item.required,
+        requiresPhoto: item.requiresPhoto,
+        notes: item.notes,
+      })),
+    })),
+    createdBy: actorId,
+    // A duplicate starts private — the author decides if/when to publish it company-wide.
+    visibility: 'private',
+    requiresSignature: source.requiresSignature,
+  });
+}
+
+export function setHazardTemplateArchived(templateId: string, archived: boolean): HazardAssessmentTemplate | undefined {
+  const index = HAZARD_TEMPLATES.findIndex((t) => t.id === templateId);
+  if (index === -1) return undefined;
+
+  const updated: HazardAssessmentTemplate = { ...HAZARD_TEMPLATES[index], archived, updatedAt: demoNow().toISOString() };
+  HAZARD_TEMPLATES[index] = updated;
   emitChange();
   return updated;
 }

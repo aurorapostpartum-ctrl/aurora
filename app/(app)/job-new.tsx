@@ -252,7 +252,9 @@ function NewJobContent() {
             Generates a job-specific hazard assessment from each template you select.
           </Text>
           <View style={styles.chipRow}>
-            {HAZARD_TEMPLATES.map((template) => (
+            {HAZARD_TEMPLATES.filter(
+              (template) => !template.archived && (template.visibility === 'company' || template.createdBy === person?.id)
+            ).map((template) => (
               <Chip
                 key={template.id}
                 label={template.name}

@@ -120,6 +120,12 @@ export function hazardRecordsForTemplate(templateId: string) {
   return JOB_HAZARD_ASSESSMENTS.filter((h) => h.templateId === templateId);
 }
 
+export function lastUsedAtForHazardTemplate(templateId: string): string | undefined {
+  const records = hazardRecordsForTemplate(templateId);
+  if (records.length === 0) return undefined;
+  return records.reduce((latest, r) => (r.generatedAt > latest ? r.generatedAt : latest), records[0].generatedAt);
+}
+
 // Sample data is dated relative to SiteVault's "current" demo date rather
 // than the real wall clock, so anchor relative timestamps to it.
 const DEMO_NOW = new Date('2026-08-01T12:00:00Z').getTime();

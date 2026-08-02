@@ -778,29 +778,179 @@ export const JOB_CHECKLISTS: JobChecklist[] = [
 
 export const HAZARD_TEMPLATES: HazardAssessmentTemplate[] = [
   {
+    id: 'tmpl-haz-daily',
+    name: 'General Daily Hazard Assessment',
+    trade: 'General',
+    description: 'Standard start-of-shift hazard walkthrough for any active job site.',
+    createdBy: 'mgr-sarah',
+    createdAt: '2026-01-02T09:00:00Z',
+    updatedAt: '2026-01-02T09:00:00Z',
+    visibility: 'company',
+    archived: false,
+    requiresSignature: true,
+    sections: [
+      {
+        id: 'sec-daily-site',
+        name: 'Site Conditions',
+        items: [
+          {
+            id: 'h1',
+            hazard: 'Weather or ground conditions affecting safe work',
+            controlMeasure: 'Assess before starting; halt work if conditions are unsafe',
+            required: true,
+            requiresPhoto: false,
+          },
+          {
+            id: 'h2',
+            hazard: 'Housekeeping / trip hazards in work area',
+            controlMeasure: 'Clear walkways and staging areas before starting',
+            required: true,
+            requiresPhoto: true,
+            notes: 'Photograph the work area before starting.',
+          },
+        ],
+      },
+      {
+        id: 'sec-daily-ppe',
+        name: 'Personal Protection',
+        items: [
+          { id: 'h3', hazard: 'Missing or damaged PPE', controlMeasure: 'Inspect PPE and replace before starting work', required: true, requiresPhoto: false },
+          { id: 'h4', hazard: 'Crew unaware of emergency procedures', controlMeasure: 'Review muster point and emergency contacts', required: false, requiresPhoto: false },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'tmpl-haz-roofing',
+    name: 'Commercial Roofing Assessment',
+    trade: 'Roofing',
+    description: 'Required before any commercial roofing work begins.',
+    createdBy: 'mgr-daniel',
+    createdAt: '2026-02-10T09:00:00Z',
+    updatedAt: '2026-02-10T09:00:00Z',
+    visibility: 'company',
+    archived: false,
+    requiresSignature: true,
+    sections: [
+      {
+        id: 'sec-roofing-fall',
+        name: 'Fall Hazards',
+        items: [
+          {
+            id: 'h1',
+            hazard: 'Fall from roof edge',
+            controlMeasure: 'Guardrails, warning lines, or personal fall arrest system required',
+            required: true,
+            requiresPhoto: true,
+            notes: 'Photograph the fall protection setup before work begins.',
+          },
+          { id: 'h2', hazard: 'Fall through skylight or roof opening', controlMeasure: 'Cover and clearly mark all openings', required: true, requiresPhoto: false },
+        ],
+      },
+      {
+        id: 'sec-roofing-materials',
+        name: 'Material Handling',
+        items: [
+          { id: 'h3', hazard: 'Hot bitumen / kettle burns', controlMeasure: 'Proper PPE, kettle attended at all times', required: true, requiresPhoto: false },
+          { id: 'h4', hazard: 'Material staging near roof edge', controlMeasure: 'Keep materials at least 6 ft from unprotected edges', required: false, requiresPhoto: false },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'tmpl-haz-excavation',
+    name: 'Excavation Hazard Assessment',
+    trade: 'Civil',
+    description: 'Required before entry into any excavation over 4 feet deep.',
+    createdBy: 'mgr-daniel',
+    createdAt: '2025-12-11T09:00:00Z',
+    updatedAt: '2025-12-11T09:00:00Z',
+    visibility: 'company',
+    archived: false,
+    requiresSignature: true,
+    sections: [
+      {
+        id: 'sec-excavation-ground',
+        name: 'Ground Conditions',
+        items: [
+          {
+            id: 'h1',
+            hazard: 'Cave-in / soil collapse',
+            controlMeasure: 'Slope, shore, or shield per competent person review',
+            required: true,
+            requiresPhoto: true,
+            notes: 'Photograph the protective system in place.',
+          },
+          { id: 'h2', hazard: 'Underground utility strike', controlMeasure: 'Confirm utility locates before digging', required: true, requiresPhoto: false },
+        ],
+      },
+      {
+        id: 'sec-excavation-equipment',
+        name: 'Equipment & Traffic',
+        items: [
+          { id: 'h3', hazard: 'Struck-by mobile equipment', controlMeasure: 'Spotter required, maintain exclusion zone', required: true, requiresPhoto: false },
+          { id: 'h4', hazard: 'Spoil pile too close to edge', controlMeasure: 'Keep spoil at least 2 ft back from the excavation', required: false, requiresPhoto: false },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'tmpl-haz-electrical',
+    name: 'Electrical Work Assessment',
+    trade: 'Electrical',
+    description: 'Required before any energized or de-energized electrical work.',
+    createdBy: 'mgr-daniel',
+    createdAt: '2026-03-01T09:00:00Z',
+    updatedAt: '2026-03-01T09:00:00Z',
+    visibility: 'company',
+    archived: false,
+    requiresSignature: true,
+    sections: [
+      {
+        id: 'sec-electrical-energized',
+        name: 'Energized Work',
+        items: [
+          {
+            id: 'h1',
+            hazard: 'Arc flash / shock exposure',
+            controlMeasure: 'De-energize and verify zero energy state where possible; arc-rated PPE if not',
+            required: true,
+            requiresPhoto: false,
+          },
+          { id: 'h2', hazard: 'Unexpected re-energization', controlMeasure: 'Lockout/tagout applied and verified', required: true, requiresPhoto: true, notes: 'Photograph the applied lock and tag.' },
+        ],
+      },
+      {
+        id: 'sec-electrical-ppe',
+        name: 'PPE & Isolation',
+        items: [
+          { id: 'h3', hazard: 'Incorrect PPE category for task', controlMeasure: 'Confirm arc-flash PPE category before starting', required: true, requiresPhoto: false },
+          { id: 'h4', hazard: 'Wet or conductive work area', controlMeasure: 'Dry the area or use insulated matting', required: false, requiresPhoto: false },
+        ],
+      },
+    ],
+  },
+  {
     id: 'tmpl-haz-fall',
     name: 'Fall Protection Hazard Assessment',
     trade: 'General',
     description: 'Required for any work performed at heights of 6 feet or greater.',
     createdBy: 'mgr-sarah',
+    createdAt: '2026-01-05T09:00:00Z',
     updatedAt: '2026-01-05T09:00:00Z',
-    hazards: [
-      { id: 'h1', hazard: 'Fall from unprotected edge', controlMeasure: 'Guardrails or personal fall arrest system required' },
-      { id: 'h2', hazard: 'Fall through floor/roof opening', controlMeasure: 'Cover and label all openings' },
-      { id: 'h3', hazard: 'Ladder instability', controlMeasure: 'Inspect ladder before use, maintain 3-point contact' },
-    ],
-  },
-  {
-    id: 'tmpl-haz-excavation',
-    name: 'Excavation & Trenching Hazard Assessment',
-    trade: 'Civil',
-    description: 'Required before entry into any excavation over 4 feet deep.',
-    createdBy: 'mgr-daniel',
-    updatedAt: '2025-12-11T09:00:00Z',
-    hazards: [
-      { id: 'h1', hazard: 'Cave-in / soil collapse', controlMeasure: 'Slope, shore, or shield per competent person review' },
-      { id: 'h2', hazard: 'Struck-by mobile equipment', controlMeasure: 'Spotter required, maintain exclusion zone' },
-      { id: 'h3', hazard: 'Underground utility strike', controlMeasure: 'Confirm utility locates before digging' },
+    visibility: 'company',
+    archived: false,
+    requiresSignature: true,
+    sections: [
+      {
+        id: 'sec-fall-hazards',
+        name: 'Fall Hazards',
+        items: [
+          { id: 'h1', hazard: 'Fall from unprotected edge', controlMeasure: 'Guardrails or personal fall arrest system required', required: true, requiresPhoto: true },
+          { id: 'h2', hazard: 'Fall through floor/roof opening', controlMeasure: 'Cover and label all openings', required: true, requiresPhoto: false },
+          { id: 'h3', hazard: 'Ladder instability', controlMeasure: 'Inspect ladder before use, maintain 3-point contact', required: false, requiresPhoto: false },
+        ],
+      },
     ],
   },
   {
@@ -809,11 +959,21 @@ export const HAZARD_TEMPLATES: HazardAssessmentTemplate[] = [
     trade: 'Welding',
     description: 'Required for any welding, cutting, or grinding operation.',
     createdBy: 'mgr-daniel',
+    createdAt: '2026-02-20T09:00:00Z',
     updatedAt: '2026-02-20T09:00:00Z',
-    hazards: [
-      { id: 'h1', hazard: 'Fire from sparks/slag', controlMeasure: 'Fire watch posted, combustibles cleared 35 ft' },
-      { id: 'h2', hazard: 'Eye/skin burns', controlMeasure: 'Proper PPE and welding shields in place' },
-      { id: 'h3', hazard: 'Toxic fume exposure', controlMeasure: 'Ventilation or respiratory protection as needed' },
+    visibility: 'company',
+    archived: false,
+    requiresSignature: true,
+    sections: [
+      {
+        id: 'sec-hotwork-fire',
+        name: 'Fire & Burn Hazards',
+        items: [
+          { id: 'h1', hazard: 'Fire from sparks/slag', controlMeasure: 'Fire watch posted, combustibles cleared 35 ft', required: true, requiresPhoto: true, notes: 'Photograph the cleared work area.' },
+          { id: 'h2', hazard: 'Eye/skin burns', controlMeasure: 'Proper PPE and welding shields in place', required: true, requiresPhoto: false },
+          { id: 'h3', hazard: 'Toxic fume exposure', controlMeasure: 'Ventilation or respiratory protection as needed', required: false, requiresPhoto: false },
+        ],
+      },
     ],
   },
   {
@@ -822,11 +982,63 @@ export const HAZARD_TEMPLATES: HazardAssessmentTemplate[] = [
     trade: 'General',
     description: 'Required prior to entry into any permit-required confined space.',
     createdBy: 'mgr-sarah',
+    createdAt: '2026-03-30T09:00:00Z',
     updatedAt: '2026-03-30T09:00:00Z',
-    hazards: [
-      { id: 'h1', hazard: 'Atmospheric hazard (low O2 / toxic gas)', controlMeasure: 'Continuous air monitoring before and during entry' },
-      { id: 'h2', hazard: 'Engulfment', controlMeasure: 'Lockout/tagout of inflow sources' },
-      { id: 'h3', hazard: 'Entrapment', controlMeasure: 'Attendant posted, retrieval system in place' },
+    visibility: 'company',
+    archived: false,
+    requiresSignature: true,
+    sections: [
+      {
+        id: 'sec-confined-atmosphere',
+        name: 'Atmosphere & Entry',
+        items: [
+          { id: 'h1', hazard: 'Atmospheric hazard (low O2 / toxic gas)', controlMeasure: 'Continuous air monitoring before and during entry', required: true, requiresPhoto: true, notes: 'Photograph the gas monitor reading before entry.' },
+          { id: 'h2', hazard: 'Engulfment', controlMeasure: 'Lockout/tagout of inflow sources', required: true, requiresPhoto: false },
+          { id: 'h3', hazard: 'Entrapment', controlMeasure: 'Attendant posted, retrieval system in place', required: true, requiresPhoto: false },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'tmpl-haz-ladder-draft',
+    name: 'Ladder Safety Walkthrough (Draft)',
+    trade: 'General',
+    description: 'Working draft for a quick ladder-specific hazard check.',
+    createdBy: 'mgr-sarah',
+    createdAt: '2026-07-10T09:00:00Z',
+    updatedAt: '2026-07-18T09:00:00Z',
+    visibility: 'private',
+    archived: false,
+    requiresSignature: false,
+    sections: [
+      {
+        id: 'sec-ladder-draft',
+        name: 'Ladder Setup',
+        items: [
+          { id: 'h1', hazard: 'Ladder on unstable footing', controlMeasure: 'Set on firm, level ground', required: false, requiresPhoto: false },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'tmpl-haz-scaffold-legacy',
+    name: 'Scaffold Erection Assessment (Legacy)',
+    trade: 'General',
+    description: 'Superseded by the current Fall Protection Hazard Assessment — kept for reference only.',
+    createdBy: 'mgr-daniel',
+    createdAt: '2024-05-01T09:00:00Z',
+    updatedAt: '2024-09-14T09:00:00Z',
+    visibility: 'company',
+    archived: true,
+    requiresSignature: true,
+    sections: [
+      {
+        id: 'sec-scaffold-legacy',
+        name: 'Erection',
+        items: [
+          { id: 'h1', hazard: 'Scaffold not tagged after inspection', controlMeasure: 'Green tag required before use', required: true, requiresPhoto: false },
+        ],
+      },
     ],
   },
 ];

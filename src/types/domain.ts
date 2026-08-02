@@ -131,16 +131,34 @@ export interface HazardTemplateItem {
   id: string;
   hazard: string;
   controlMeasure: string;
+  required: boolean;
+  requiresPhoto: boolean;
+  notes?: string;
 }
+
+export interface HazardTemplateSection {
+  id: string;
+  name: string;
+  items: HazardTemplateItem[];
+}
+
+export type HazardSourceFileType = 'pdf' | 'word' | 'excel' | 'image';
 
 export interface HazardAssessmentTemplate {
   id: string;
   name: string;
   trade: string;
   description: string;
-  hazards: HazardTemplateItem[];
+  sections: HazardTemplateSection[];
   createdBy: string;
+  createdAt: string;
   updatedAt: string;
+  visibility: TemplateVisibility;
+  archived: boolean;
+  requiresSignature: boolean;
+  /** Set when this template originated from "Upload Existing Hazard Assessment Form". */
+  sourceFileName?: string;
+  sourceFileType?: HazardSourceFileType;
 }
 
 export interface JobHazardItem {
@@ -148,6 +166,11 @@ export interface JobHazardItem {
   hazard: string;
   controlMeasure: string;
   acknowledged: boolean;
+  /** Carried over from the template at generation time — older generated records may predate this metadata. */
+  sectionName?: string;
+  required?: boolean;
+  requiresPhoto?: boolean;
+  photoIds?: string[];
 }
 
 export interface JobHazardAssessment {
