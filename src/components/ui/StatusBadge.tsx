@@ -11,14 +11,14 @@ export interface StatusBadgeProps {
 }
 
 const TONE_STYLES: Record<StatusTone, { bg: string; fg: string; border: string }> = {
-  success: { bg: colors.successMuted, fg: colors.success, border: 'rgba(79,169,104,0.35)' },
-  warning: { bg: colors.warningMuted, fg: colors.warning, border: 'rgba(221,165,43,0.35)' },
-  danger: { bg: colors.dangerMuted, fg: colors.danger, border: 'rgba(225,92,66,0.35)' },
+  success: { bg: colors.successMuted, fg: colors.success, border: 'rgba(34,197,94,0.35)' },
+  warning: { bg: colors.warningMuted, fg: colors.warning, border: 'rgba(245,158,11,0.35)' },
+  danger: { bg: colors.dangerMuted, fg: colors.danger, border: 'rgba(239,68,68,0.35)' },
   accent: { bg: colors.accentMuted, fg: colors.accentStrong, border: colors.accentBorder },
   neutral: { bg: colors.surface, fg: colors.textSecondary, border: colors.surfaceBorder },
-  // For the warm paper Job Folder surface, where `neutral`'s translucent-white
+  // For the paper Job Folder surface, where `neutral`'s translucent-white
   // styling (built for the dark app chrome) reads as nearly invisible.
-  ink: { bg: 'rgba(29,24,16,0.08)', fg: colors.ink, border: colors.paperBorder },
+  ink: { bg: 'rgba(20,20,20,0.06)', fg: colors.ink, border: colors.paperBorder },
 };
 
 export function StatusBadge({ label, tone = 'neutral' }: StatusBadgeProps) {

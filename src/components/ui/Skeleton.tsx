@@ -8,7 +8,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import { colors, radius } from '../../theme';
+import { colors, radius, spacing } from '../../theme';
 
 export interface SkeletonProps {
   width?: DimensionValue;
@@ -70,7 +70,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceHighlight,
   },
   card: {
-    padding: 16,
+    padding: spacing.md,
     borderRadius: radius.md,
     backgroundColor: colors.surface,
     borderWidth: StyleSheet.hairlineWidth,
@@ -81,10 +81,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   rowText: {
-    marginLeft: 12,
+    marginLeft: spacing.sm,
     flex: 1,
   },
   spaceTop: {
-    marginTop: 8,
+    marginTop: spacing.xs,
   },
 });

@@ -69,7 +69,7 @@ export function JobFolderCard({ job, onPress }: JobFolderCardProps) {
             </View>
             <ProgressBar
               progress={job.progress}
-              trackColor="rgba(29,24,16,0.10)"
+              trackColor="rgba(20,20,20,0.10)"
               fillColor={job.tabColor}
               style={styles.progress}
             />

@@ -107,7 +107,7 @@ export function AnimatedBackground() {
       <View style={styles.base} />
       <Orb
         size={420}
-        colorFrom="rgba(196,129,60,0.26)"
+        colorFrom="rgba(47,111,237,0.26)"
         style={{ top: -160, left: -120 }}
         duration={9000}
         delay={0}
@@ -116,7 +116,7 @@ export function AnimatedBackground() {
       />
       <Orb
         size={340}
-        colorFrom="rgba(224,149,74,0.16)"
+        colorFrom="rgba(91,147,255,0.16)"
         style={{ bottom: -120, right: -100 }}
         duration={11000}
         delay={500}
@@ -125,7 +125,7 @@ export function AnimatedBackground() {
       />
       <Orb
         size={280}
-        colorFrom="rgba(196,129,60,0.12)"
+        colorFrom="rgba(47,111,237,0.12)"
         style={{ top: '38%', right: -130 }}
         duration={13000}
         delay={1000}
@@ -148,6 +148,6 @@ const styles = StyleSheet.create({
   },
   vignette: {
     ...StyleSheet.absoluteFill,
-    backgroundColor: 'rgba(14,12,9,0.35)',
+    backgroundColor: 'rgba(8,8,8,0.35)',
   },
 });

@@ -1,40 +1,40 @@
 export const colors = {
-  background: '#141210',
-  backgroundElevated: '#1C1916',
-  backgroundElevated2: '#25211C',
+  background: '#121212',
+  backgroundElevated: '#1A1A1A',
+  backgroundElevated2: '#242424',
 
-  surface: 'rgba(250,245,235,0.05)',
-  surfaceBorder: 'rgba(250,245,235,0.10)',
-  surfaceHighlight: 'rgba(250,245,235,0.14)',
+  surface: 'rgba(255,255,255,0.05)',
+  surfaceBorder: 'rgba(255,255,255,0.10)',
+  surfaceHighlight: 'rgba(255,255,255,0.14)',
 
-  // Warm, paper-like surface used for the Job Folder concept, document
+  // Neutral paper-white surface used for the Job Folder concept, document
   // previews, and other places that should feel like physical site paperwork.
-  paper: '#F3EDE0',
-  paperElevated: '#FAF7EF',
-  paperBorder: 'rgba(29,24,16,0.12)',
-  ink: '#221D15',
-  inkSecondary: 'rgba(34,29,21,0.64)',
-  inkTertiary: 'rgba(34,29,21,0.42)',
+  paper: '#F2F2F2',
+  paperElevated: '#FFFFFF',
+  paperBorder: 'rgba(17,17,17,0.12)',
+  ink: '#141414',
+  inkSecondary: 'rgba(20,20,20,0.64)',
+  inkTertiary: 'rgba(20,20,20,0.42)',
 
-  accent: '#C4813C',
-  accentMuted: 'rgba(196,129,60,0.16)',
-  accentBorder: 'rgba(196,129,60,0.38)',
-  accentStrong: '#E0954A',
+  accent: '#2F6FED',
+  accentMuted: 'rgba(47,111,237,0.16)',
+  accentBorder: 'rgba(47,111,237,0.38)',
+  accentStrong: '#5B93FF',
 
-  success: '#4FA968',
-  successMuted: 'rgba(79,169,104,0.16)',
-  warning: '#DDA52B',
-  warningMuted: 'rgba(221,165,43,0.16)',
-  danger: '#E15C42',
-  dangerMuted: 'rgba(225,92,66,0.15)',
+  success: '#22C55E',
+  successMuted: 'rgba(34,197,94,0.16)',
+  warning: '#F59E0B',
+  warningMuted: 'rgba(245,158,11,0.16)',
+  danger: '#EF4444',
+  dangerMuted: 'rgba(239,68,68,0.15)',
 
-  textPrimary: '#F6F1E7',
-  textSecondary: 'rgba(246,241,231,0.64)',
-  textTertiary: 'rgba(246,241,231,0.40)',
-  textOnAccent: '#191410',
+  textPrimary: '#FFFFFF',
+  textSecondary: 'rgba(255,255,255,0.64)',
+  textTertiary: 'rgba(255,255,255,0.40)',
+  textOnAccent: '#FFFFFF',
 
-  divider: 'rgba(246,241,231,0.09)',
-  overlay: 'rgba(10,8,6,0.60)',
+  divider: 'rgba(255,255,255,0.09)',
+  overlay: 'rgba(0,0,0,0.60)',
 } as const;
 
 export type ColorToken = keyof typeof colors;

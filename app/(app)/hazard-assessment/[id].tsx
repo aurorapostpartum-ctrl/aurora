@@ -3,7 +3,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useState, type ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
-import { Button, Checkbox, ProgressBar, Screen, StatusBadge, Text, TextField, Toast } from '../../../src/components/ui';
+import { Button, Checkbox, EmptyState, ProgressBar, Screen, StatusBadge, Text, TextField, Toast } from '../../../src/components/ui';
 import {
   addCustomHazardItem,
   addHazardItemPhoto,
@@ -65,12 +65,7 @@ function HazardAssessmentContent() {
             </Text>
           </Pressable>
         </View>
-        <View style={styles.notFound}>
-          <Ionicons name="warning-outline" size={32} color={colors.textTertiary} />
-          <Text variant="headline" color={colors.textTertiary} style={styles.notFoundText}>
-            Hazard assessment not found
-          </Text>
-        </View>
+        <EmptyState icon="warning-outline" title="Hazard assessment not found" />
       </Screen>
     );
   }
@@ -168,7 +163,7 @@ function HazardAssessmentContent() {
               <>
                 <ProgressBar
                   progress={(step / (TOTAL_STEPS - 1)) * 100}
-                  trackColor="rgba(29,24,16,0.10)"
+                  trackColor="rgba(20,20,20,0.10)"
                   fillColor={colors.accentStrong}
                   style={styles.progress}
                 />
@@ -597,15 +592,6 @@ const styles = StyleSheet.create({
   },
   backLabel: {
     marginLeft: 2,
-  },
-  notFound: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.sm,
-  },
-  notFoundText: {
-    marginTop: spacing.xs,
   },
   content: {
     paddingHorizontal: spacing.lg,
