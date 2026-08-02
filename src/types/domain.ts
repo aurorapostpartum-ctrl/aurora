@@ -165,13 +165,19 @@ export interface JobHazardItem {
   id: string;
   hazard: string;
   controlMeasure: string;
-  acknowledged: boolean;
+  /** Selected during the "Identify hazards" step as applicable to today's work. */
+  identified: boolean;
+  /** Added on the fly during the "Identify hazards" step rather than coming from the template. */
+  custom?: boolean;
   /** Carried over from the template at generation time — older generated records may predate this metadata. */
   sectionName?: string;
   required?: boolean;
   requiresPhoto?: boolean;
   photoIds?: string[];
 }
+
+/** Index into the 7-step guided workflow: 0 work, 1 hazards, 2 controls, 3 notes/photos, 4 review, 5 signature, 6 submit. */
+export type HazardAssessmentStep = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 
 export interface JobHazardAssessment {
   id: string;
@@ -185,8 +191,16 @@ export interface JobHazardAssessment {
   completedBy?: string;
   completedAt?: string;
   status: RecordStatus;
+  /** Step 1: what work is being performed today. */
+  workDescription: string;
   hazards: JobHazardItem[];
-  crewSignoff: string[];
+  /** Step 4: general notes for the assessment as a whole. */
+  notes: string;
+  /** Step 6: typed digital signature certifying the assessment. */
+  signatureName?: string;
+  signedAt?: string;
+  /** Where the employee left off, so "Continue Later" resumes at the right step. */
+  currentStep: HazardAssessmentStep;
 }
 
 export interface JobPhoto {

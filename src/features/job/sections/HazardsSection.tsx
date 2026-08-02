@@ -1,25 +1,29 @@
 import { Ionicons } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
-import { useState, type Dispatch, type SetStateAction } from 'react';
-import { Platform, Pressable, StyleSheet, View } from 'react-native';
+import { router } from 'expo-router';
+import { useState } from 'react';
+import { Pressable, StyleSheet, View } from 'react-native';
 
-import { Avatar, Button, EmptyState, SelectModal, StatusBadge, Text } from '../../../components/ui';
+import { Button, Card, EmptyState, SelectModal, StatusBadge, Text } from '../../../components/ui';
 import { HAZARD_TEMPLATES } from '../../../data/company';
-import { flattenHazardTemplateSections } from '../../../data/mockStore';
-import { formatDate, getPerson, personName } from '../../../data/selectors';
-import { createId } from '../../../lib/id';
-import { colors, radius, spacing } from '../../../theme';
+import { generateHazardAssessmentFromTemplate } from '../../../data/mockStore';
+import { formatDate, personName } from '../../../data/selectors';
+import { colors, spacing } from '../../../theme';
 import type { Job, JobHazardAssessment, Person } from '../../../types/domain';
+
+const TOTAL_STEPS = 7;
 
 interface HazardsSectionProps {
   job: Job;
   person: Person;
   hazards: JobHazardAssessment[];
-  setHazards: Dispatch<SetStateAction<JobHazardAssessment[]>>;
 }
 
-export function HazardsSection({ job, person, hazards, setHazards }: HazardsSectionProps) {
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+function stepPercent(record: JobHazardAssessment): number {
+  if (record.status === 'completed') return 100;
+  return Math.round(((record.currentStep + 1) / TOTAL_STEPS) * 100);
+}
+
+export function HazardsSection({ job, person, hazards }: HazardsSectionProps) {
   const [templatePickerOpen, setTemplatePickerOpen] = useState(false);
 
   const availableTemplates = HAZARD_TEMPLATES.filter(
@@ -27,57 +31,8 @@ export function HazardsSection({ job, person, hazards, setHazards }: HazardsSect
   );
 
   const handleGenerate = (templateId: string) => {
-    const template = HAZARD_TEMPLATES.find((t) => t.id === templateId);
-    if (!template) return;
-
-    const now = new Date();
-    const record: JobHazardAssessment = {
-      id: createId('jha'),
-      jobId: job.id,
-      templateId: template.id,
-      templateName: template.name,
-      trade: template.trade,
-      recordTitle: `${job.name} — ${template.name} — ${formatDate(now.toISOString())}`,
-      generatedBy: person.id,
-      generatedAt: now.toISOString(),
-      status: 'in_progress',
-      crewSignoff: [],
-      hazards: flattenHazardTemplateSections(template.sections),
-    };
-
-    setHazards((prev) => [record, ...prev]);
-    setExpandedId(record.id);
-    if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-  };
-
-  const toggleHazard = (recordId: string, hazardId: string) => {
-    if (Platform.OS !== 'web') Haptics.selectionAsync();
-    setHazards((prev) =>
-      prev.map((r) => {
-        if (r.id !== recordId) return r;
-        const nextHazards = r.hazards.map((h) => (h.id === hazardId ? { ...h, acknowledged: !h.acknowledged } : h));
-        const allAck = nextHazards.every((h) => h.acknowledged);
-        const nowComplete = allAck && r.status !== 'completed';
-        return {
-          ...r,
-          hazards: nextHazards,
-          status: allAck ? 'completed' : 'in_progress',
-          completedBy: allAck ? r.completedBy ?? person.id : undefined,
-          completedAt: nowComplete ? new Date().toISOString() : r.completedAt,
-        };
-      })
-    );
-  };
-
-  const handleSignOn = (recordId: string) => {
-    if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setHazards((prev) =>
-      prev.map((r) =>
-        r.id === recordId && !r.crewSignoff.includes(person.id)
-          ? { ...r, crewSignoff: [...r.crewSignoff, person.id] }
-          : r
-      )
-    );
+    const record = generateHazardAssessmentFromTemplate({ jobId: job.id, templateId, generatedBy: person.id });
+    if (record) router.push(`/(app)/hazard-assessment/${record.id}` as never);
   };
 
   return (
@@ -87,7 +42,7 @@ export function HazardsSection({ job, person, hazards, setHazards }: HazardsSect
           {hazards.length} {hazards.length === 1 ? 'assessment' : 'assessments'}
         </Text>
         <Button
-          label="Generate from Template"
+          label="Generate Hazard Assessment"
           size="md"
           fullWidth={false}
           onPress={() => setTemplatePickerOpen(true)}
@@ -102,70 +57,43 @@ export function HazardsSection({ job, person, hazards, setHazards }: HazardsSect
         />
       ) : (
         hazards.map((r) => {
-          const expanded = expandedId === r.id;
-          const signedOn = r.crewSignoff.includes(person.id);
-
+          const percent = stepPercent(r);
+          const identifiedCount = r.hazards.filter((h) => h.identified).length;
           return (
-            <View key={r.id} style={styles.card}>
-              <Pressable style={styles.headerRow} onPress={() => setExpandedId(expanded ? null : r.id)}>
-                <View style={styles.headerText}>
-                  <Text variant="headline" numberOfLines={2}>
-                    {r.recordTitle}
-                  </Text>
-                  <Text variant="footnote" color={colors.textTertiary} style={styles.meta}>
-                    Generated by {personName(r.generatedBy)} · {formatDate(r.generatedAt)}
-                  </Text>
-                </View>
-                <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={16} color={colors.textTertiary} />
-              </Pressable>
-
-              <View style={styles.badgeRow}>
-                <StatusBadge
-                  label={r.status === 'completed' ? 'Completed' : 'In Progress'}
-                  tone={r.status === 'completed' ? 'success' : 'warning'}
-                />
-                <View style={styles.crewRow}>
-                  {r.crewSignoff.map((pid) => {
-                    const p = getPerson(pid);
-                    return p ? <Avatar key={pid} initials={p.initials} color={p.avatarColor} size={22} style={styles.crewAvatar} /> : null;
-                  })}
-                </View>
-              </View>
-
-              {expanded ? (
-                <View style={styles.itemList}>
-                  {r.hazards.map((hazard) => (
-                    <Pressable
-                      key={hazard.id}
-                      style={styles.hazardRow}
-                      onPress={() => toggleHazard(r.id, hazard.id)}
-                    >
-                      <Ionicons
-                        name={hazard.acknowledged ? 'checkmark-circle' : 'ellipse-outline'}
-                        size={18}
-                        color={hazard.acknowledged ? colors.success : colors.textTertiary}
+            <Pressable
+              key={r.id}
+              onPress={() => router.push(`/(app)/hazard-assessment/${r.id}` as never)}
+              style={styles.rowPressable}
+            >
+              {({ pressed }) => (
+                <Card style={[styles.row, pressed && styles.rowPressed]} shadowToken="xs">
+                  <View style={styles.iconWrap}>
+                    <Ionicons name="warning-outline" size={18} color={colors.accentStrong} />
+                  </View>
+                  <View style={styles.rowBody}>
+                    <View style={styles.titleRow}>
+                      <Text variant="headline" numberOfLines={1} style={styles.title}>
+                        {r.templateName}
+                      </Text>
+                      <StatusBadge
+                        label={r.status === 'completed' ? 'Completed' : 'In Progress'}
+                        tone={r.status === 'completed' ? 'success' : 'warning'}
                       />
-                      <View style={styles.hazardText}>
-                        <Text variant="body">{hazard.hazard}</Text>
-                        <Text variant="footnote" color={colors.textSecondary} style={styles.control}>
-                          Control: {hazard.controlMeasure}
-                        </Text>
-                      </View>
-                    </Pressable>
-                  ))}
-
-                  <Button
-                    label={signedOn ? 'You signed this assessment' : 'Sign This Assessment'}
-                    variant={signedOn ? 'secondary' : 'primary'}
-                    size="md"
-                    fullWidth={false}
-                    disabled={signedOn}
-                    onPress={() => handleSignOn(r.id)}
-                    style={styles.signButton}
-                  />
-                </View>
-              ) : null}
-            </View>
+                    </View>
+                    <Text variant="footnote" color={colors.textSecondary} numberOfLines={1}>
+                      {r.trade} ·{' '}
+                      {r.status === 'completed'
+                        ? `${identifiedCount} hazard${identifiedCount === 1 ? '' : 's'} identified`
+                        : `Step ${r.currentStep + 1} of ${TOTAL_STEPS} · ${percent}%`}
+                    </Text>
+                    <Text variant="footnote" color={colors.textTertiary} numberOfLines={1}>
+                      Generated by {personName(r.generatedBy)} · {formatDate(r.generatedAt)}
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={16} color={colors.textTertiary} />
+                </Card>
+              )}
+            </Pressable>
           );
         })
       )}
@@ -189,58 +117,37 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: spacing.md,
   },
-  card: {
-    backgroundColor: colors.surface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.surfaceBorder,
-    borderRadius: radius.md,
-    padding: spacing.md,
+  rowPressable: {
     marginBottom: spacing.sm,
   },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-  },
-  headerText: {
-    flex: 1,
-    marginRight: spacing.sm,
-  },
-  meta: {
-    marginTop: 2,
-  },
-  badgeRow: {
+  row: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: spacing.sm,
+    padding: spacing.md,
   },
-  crewRow: {
-    flexDirection: 'row',
+  rowPressed: {
+    opacity: 0.92,
   },
-  crewAvatar: {
-    marginLeft: -6,
-    borderWidth: 2,
-    borderColor: colors.background,
+  iconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.accentMuted,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  itemList: {
-    marginTop: spacing.md,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.divider,
-    paddingTop: spacing.sm,
-  },
-  hazardRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    paddingVertical: spacing.xs + 2,
-  },
-  hazardText: {
-    marginLeft: spacing.sm,
+  rowBody: {
     flex: 1,
+    marginLeft: spacing.sm,
+    marginRight: spacing.sm,
   },
-  control: {
-    marginTop: 2,
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginBottom: 2,
   },
-  signButton: {
-    marginTop: spacing.sm,
+  title: {
+    flexShrink: 1,
   },
 });

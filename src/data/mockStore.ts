@@ -20,12 +20,14 @@ import type {
   ChecklistTemplateSection,
   DocumentCategory,
   DocumentFileType,
+  HazardAssessmentStep,
   HazardAssessmentTemplate,
   HazardSourceFileType,
   HazardTemplateSection,
   Job,
   JobChecklist,
   JobDocument,
+  JobHazardAssessment,
   JobHazardItem,
   JobPhoto,
   JobStatus,
@@ -112,29 +114,7 @@ export function createJob(input: CreateJobInput): Job {
   }
 
   for (const templateId of input.hazardTemplateIds) {
-    const template = HAZARD_TEMPLATES.find((t) => t.id === templateId);
-    if (!template) continue;
-    JOB_HAZARD_ASSESSMENTS.unshift({
-      id: createId('jha'),
-      jobId: job.id,
-      templateId: template.id,
-      templateName: template.name,
-      trade: template.trade,
-      recordTitle: `${job.name} — ${template.name} — ${formatDate(now)}`,
-      generatedBy: input.managerId,
-      generatedAt: now,
-      status: 'in_progress',
-      crewSignoff: [],
-      hazards: flattenHazardTemplateSections(template.sections),
-    });
-    ACTIVITY.unshift({
-      id: createId('act'),
-      jobId: job.id,
-      type: 'hazard_assessment_generated',
-      actorId: input.managerId,
-      createdAt: now,
-      summary: `Generated ${template.name}`,
-    });
+    generateHazardAssessmentFromTemplate({ jobId: job.id, templateId, generatedBy: input.managerId });
   }
 
   emitChange();
@@ -651,7 +631,7 @@ export function flattenHazardTemplateSections(sections: HazardTemplateSection[])
         id: item.id,
         hazard: item.hazard,
         controlMeasure: item.controlMeasure,
-        acknowledged: false,
+        identified: false,
         sectionName: section.name,
         required: item.required,
         requiresPhoto: item.requiresPhoto,
@@ -787,6 +767,165 @@ export function setHazardTemplateArchived(templateId: string, archived: boolean)
 
   const updated: HazardAssessmentTemplate = { ...HAZARD_TEMPLATES[index], archived, updatedAt: demoNow().toISOString() };
   HAZARD_TEMPLATES[index] = updated;
+  emitChange();
+  return updated;
+}
+
+// --- Job-specific Hazard Assessment guided workflow ---
+// A generated JobHazardAssessment is an independent copy — the template it
+// came from is never touched by anything below.
+
+export interface GenerateHazardAssessmentInput {
+  jobId: string;
+  templateId: string;
+  generatedBy: string;
+}
+
+export function generateHazardAssessmentFromTemplate(
+  input: GenerateHazardAssessmentInput
+): JobHazardAssessment | undefined {
+  const template = HAZARD_TEMPLATES.find((t) => t.id === input.templateId);
+  if (!template) return undefined;
+
+  const job = JOBS.find((j) => j.id === input.jobId);
+  const now = demoNow().toISOString();
+  const record: JobHazardAssessment = {
+    id: createId('jha'),
+    jobId: input.jobId,
+    templateId: template.id,
+    templateName: template.name,
+    trade: template.trade,
+    recordTitle: `${job?.name ?? ''} — ${template.name} — ${formatDate(now)}`,
+    generatedBy: input.generatedBy,
+    generatedAt: now,
+    status: 'in_progress',
+    workDescription: '',
+    notes: '',
+    currentStep: 0,
+    hazards: flattenHazardTemplateSections(template.sections),
+  };
+
+  JOB_HAZARD_ASSESSMENTS.unshift(record);
+  ACTIVITY.unshift({
+    id: createId('act'),
+    jobId: input.jobId,
+    type: 'hazard_assessment_generated',
+    actorId: input.generatedBy,
+    createdAt: now,
+    summary: `Generated ${template.name}`,
+  });
+  emitChange();
+  return record;
+}
+
+function updateHazardAssessment(
+  recordId: string,
+  updater: (record: JobHazardAssessment) => JobHazardAssessment
+): JobHazardAssessment | undefined {
+  const index = JOB_HAZARD_ASSESSMENTS.findIndex((r) => r.id === recordId);
+  if (index === -1) return undefined;
+
+  const updated = updater(JOB_HAZARD_ASSESSMENTS[index]);
+  JOB_HAZARD_ASSESSMENTS[index] = updated;
+  emitChange();
+  return updated;
+}
+
+export function updateHazardWorkDescription(recordId: string, workDescription: string): JobHazardAssessment | undefined {
+  return updateHazardAssessment(recordId, (record) => ({ ...record, workDescription }));
+}
+
+export function setHazardItemIdentified(recordId: string, itemId: string, identified: boolean): JobHazardAssessment | undefined {
+  return updateHazardAssessment(recordId, (record) => ({
+    ...record,
+    hazards: record.hazards.map((h) => (h.id === itemId ? { ...h, identified } : h)),
+  }));
+}
+
+export function addCustomHazardItem(recordId: string, hazard: string): JobHazardAssessment | undefined {
+  const text = hazard.trim();
+  if (!text) return undefined;
+  return updateHazardAssessment(recordId, (record) => ({
+    ...record,
+    hazards: [
+      ...record.hazards,
+      {
+        id: createId('haz-custom'),
+        hazard: text,
+        controlMeasure: '',
+        identified: true,
+        custom: true,
+        required: false,
+        requiresPhoto: false,
+      },
+    ],
+  }));
+}
+
+export function removeHazardItem(recordId: string, itemId: string): JobHazardAssessment | undefined {
+  return updateHazardAssessment(recordId, (record) => ({
+    ...record,
+    hazards: record.hazards.filter((h) => h.id !== itemId),
+  }));
+}
+
+export function updateHazardItemControl(recordId: string, itemId: string, controlMeasure: string): JobHazardAssessment | undefined {
+  return updateHazardAssessment(recordId, (record) => ({
+    ...record,
+    hazards: record.hazards.map((h) => (h.id === itemId ? { ...h, controlMeasure } : h)),
+  }));
+}
+
+export function addHazardItemPhoto(recordId: string, itemId: string, uploadedBy: string): JobHazardAssessment | undefined {
+  const record = JOB_HAZARD_ASSESSMENTS.find((r) => r.id === recordId);
+  const item = record?.hazards.find((h) => h.id === itemId);
+  if (!record || !item) return undefined;
+
+  const photo = addPhoto({ jobId: record.jobId, caption: item.hazard, uploadedBy, tags: ['hazard-assessment'] });
+
+  return updateHazardAssessment(recordId, (r) => ({
+    ...r,
+    hazards: r.hazards.map((h) => (h.id === itemId ? { ...h, photoIds: [...(h.photoIds ?? []), photo.id] } : h)),
+  }));
+}
+
+export function updateHazardNotes(recordId: string, notes: string): JobHazardAssessment | undefined {
+  return updateHazardAssessment(recordId, (record) => ({ ...record, notes }));
+}
+
+export function setHazardCurrentStep(recordId: string, step: HazardAssessmentStep): JobHazardAssessment | undefined {
+  return updateHazardAssessment(recordId, (record) => ({ ...record, currentStep: step }));
+}
+
+export function signHazardAssessment(recordId: string, signatureName: string): JobHazardAssessment | undefined {
+  return updateHazardAssessment(recordId, (record) => ({
+    ...record,
+    signatureName: signatureName.trim(),
+    signedAt: demoNow().toISOString(),
+  }));
+}
+
+export function submitHazardAssessment(recordId: string, submittedBy: string): JobHazardAssessment | undefined {
+  const record = JOB_HAZARD_ASSESSMENTS.find((r) => r.id === recordId);
+  if (!record) return undefined;
+  const now = demoNow().toISOString();
+
+  const updated = updateHazardAssessment(recordId, (r) => ({
+    ...r,
+    status: 'completed',
+    completedBy: submittedBy,
+    completedAt: now,
+    currentStep: 6,
+  }));
+
+  ACTIVITY.unshift({
+    id: createId('act'),
+    jobId: record.jobId,
+    type: 'hazard_assessment_completed',
+    actorId: submittedBy,
+    createdAt: now,
+    summary: `Submitted ${record.templateName}`,
+  });
   emitChange();
   return updated;
 }

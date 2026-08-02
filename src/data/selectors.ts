@@ -51,6 +51,11 @@ export function getChecklist(id: string | undefined) {
   return JOB_CHECKLISTS.find((c) => c.id === id);
 }
 
+export function getHazardAssessment(id: string | undefined) {
+  if (!id) return undefined;
+  return JOB_HAZARD_ASSESSMENTS.find((h) => h.id === id);
+}
+
 export function getPhoto(id: string | undefined) {
   if (!id) return undefined;
   return PHOTOS.find((p) => p.id === id);

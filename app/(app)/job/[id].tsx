@@ -34,13 +34,7 @@ import { PhotosSection } from '../../../src/features/job/sections/PhotosSection'
 import { ActivitySection } from '../../../src/features/job/sections/ActivitySection';
 import { useAuth } from '../../../src/providers/AuthProvider';
 import { colors, spacing } from '../../../src/theme';
-import type {
-  Deficiency,
-  JobAnnouncement,
-  JobHazardAssessment,
-  JobNote,
-  ProjectCompletion,
-} from '../../../src/types/domain';
+import type { Deficiency, JobAnnouncement, JobNote, ProjectCompletion } from '../../../src/types/domain';
 
 type SectionKey =
   | 'overview'
@@ -93,9 +87,6 @@ export default function JobDetailScreen() {
   const [uploadDocOpen, setUploadDocOpen] = useState(false);
   const [moreActionsOpen, setMoreActionsOpen] = useState(false);
 
-  const [hazards, setHazards] = useState<JobHazardAssessment[]>(() =>
-    job ? hazardAssessmentsForJob(job.id) : []
-  );
   const [deficiencies, setDeficiencies] = useState<Deficiency[]>(() =>
     job ? deficienciesForJob(job.id) : []
   );
@@ -109,6 +100,7 @@ export default function JobDetailScreen() {
 
   const documents = job ? documentsForJob(job.id) : [];
   const checklists = job ? checklistsForJob(job.id) : [];
+  const hazards = job ? hazardAssessmentsForJob(job.id) : [];
   const photos = job ? photosForJob(job.id) : [];
   const activity = useMemo(() => (job ? activityForJob(job.id) : []), [job, version]);
 
@@ -130,7 +122,7 @@ export default function JobDetailScreen() {
     checklists.reduce((sum, c) => sum + c.items.length, 0) + hazards.reduce((sum, h) => sum + h.hazards.length, 0);
   const doneCompletionItems =
     checklists.reduce((sum, c) => sum + c.items.filter((i) => i.status !== 'pending').length, 0) +
-    hazards.reduce((sum, h) => sum + h.hazards.filter((x) => x.acknowledged).length, 0);
+    hazards.reduce((sum, h) => sum + h.hazards.filter((x) => x.identified).length, 0);
 
   return (
     <Screen glow={false}>
@@ -274,9 +266,7 @@ export default function JobDetailScreen() {
           {activeSection === 'checklists' ? (
             <ChecklistsSection job={job} person={person} checklists={checklists} />
           ) : null}
-          {activeSection === 'hazards' ? (
-            <HazardsSection job={job} person={person} hazards={hazards} setHazards={setHazards} />
-          ) : null}
+          {activeSection === 'hazards' ? <HazardsSection job={job} person={person} hazards={hazards} /> : null}
           {activeSection === 'photos' ? (
             <PhotosSection photos={photos} job={job} person={person} />
           ) : null}
