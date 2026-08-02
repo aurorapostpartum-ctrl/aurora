@@ -50,9 +50,13 @@ export function currentRevision(doc: JobDocument) {
 
 export type ReviewState = 'not_required' | 'reviewed' | 'needs_review' | 'new_revision';
 
+export function acknowledgmentFor(doc: JobDocument, personId: string) {
+  return doc.acknowledgments.find((a) => a.personId === personId);
+}
+
 export function reviewStateFor(doc: JobDocument, personId: string): ReviewState {
   if (!doc.reviewRequired) return 'not_required';
-  if (doc.reviewedBy.includes(personId)) return 'reviewed';
+  if (acknowledgmentFor(doc, personId)) return 'reviewed';
   return doc.revisions.length > 1 ? 'new_revision' : 'needs_review';
 }
 

@@ -1,10 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useState, type Dispatch, type SetStateAction } from 'react';
+import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { Button, EmptyState, StatusBadge, Text, TextField } from '../../../components/ui';
+import { addAnnouncement } from '../../../data/mockStore';
 import { formatDate, personName } from '../../../data/selectors';
-import { createId } from '../../../lib/id';
 import { colors, radius, spacing } from '../../../theme';
 import type { Job, JobAnnouncement, Person } from '../../../types/domain';
 
@@ -12,10 +12,9 @@ interface AnnouncementsSectionProps {
   job: Job;
   person: Person;
   announcements: JobAnnouncement[];
-  setAnnouncements: Dispatch<SetStateAction<JobAnnouncement[]>>;
 }
 
-export function AnnouncementsSection({ job, person, announcements, setAnnouncements }: AnnouncementsSectionProps) {
+export function AnnouncementsSection({ job, person, announcements }: AnnouncementsSectionProps) {
   const isManager = person.role === 'manager';
   const [formOpen, setFormOpen] = useState(false);
   const [title, setTitle] = useState('');
@@ -23,16 +22,7 @@ export function AnnouncementsSection({ job, person, announcements, setAnnounceme
 
   const handlePost = () => {
     if (!title.trim() || !body.trim()) return;
-    const announcement: JobAnnouncement = {
-      id: createId('ann'),
-      jobId: job.id,
-      authorId: person.id,
-      createdAt: new Date().toISOString(),
-      title: title.trim(),
-      body: body.trim(),
-      pinned: true,
-    };
-    setAnnouncements((prev) => [announcement, ...prev]);
+    addAnnouncement(job.id, person.id, title, body, true);
     setTitle('');
     setBody('');
     setFormOpen(false);

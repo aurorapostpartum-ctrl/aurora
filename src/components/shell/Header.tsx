@@ -48,6 +48,7 @@ export function Header({ title, isSidebarLayout, unreadCount, onAvatarPress }: H
           onPress={() => router.push('/(app)/(shell)/search' as never)}
           style={styles.iconButton}
           hitSlop={8}
+          accessibilityLabel="Search"
         >
           <Ionicons name="search-outline" size={19} color={colors.textPrimary} />
         </Pressable>
@@ -56,6 +57,7 @@ export function Header({ title, isSidebarLayout, unreadCount, onAvatarPress }: H
           onPress={() => router.push('/(app)/notifications')}
           style={styles.iconButton}
           hitSlop={8}
+          accessibilityLabel="Notifications"
         >
           <Ionicons name="notifications-outline" size={19} color={colors.textPrimary} />
           {unreadCount > 0 ? (

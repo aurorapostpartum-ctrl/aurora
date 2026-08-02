@@ -1,9 +1,9 @@
-import { useState, type Dispatch, type SetStateAction } from 'react';
+import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { Avatar, Button, EmptyState, Text, TextField } from '../../../components/ui';
+import { addNote } from '../../../data/mockStore';
 import { formatDate, getPerson } from '../../../data/selectors';
-import { createId } from '../../../lib/id';
 import { colors, radius, spacing } from '../../../theme';
 import type { Job, JobNote, Person } from '../../../types/domain';
 
@@ -11,22 +11,14 @@ interface NotesSectionProps {
   job: Job;
   person: Person;
   notes: JobNote[];
-  setNotes: Dispatch<SetStateAction<JobNote[]>>;
 }
 
-export function NotesSection({ job, person, notes, setNotes }: NotesSectionProps) {
+export function NotesSection({ job, person, notes }: NotesSectionProps) {
   const [draft, setDraft] = useState('');
 
   const handleAdd = () => {
     if (!draft.trim()) return;
-    const note: JobNote = {
-      id: createId('note'),
-      jobId: job.id,
-      authorId: person.id,
-      createdAt: new Date().toISOString(),
-      body: draft.trim(),
-    };
-    setNotes((prev) => [note, ...prev]);
+    addNote(job.id, person.id, draft);
     setDraft('');
   };
 

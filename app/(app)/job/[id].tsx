@@ -34,7 +34,6 @@ import { PhotosSection } from '../../../src/features/job/sections/PhotosSection'
 import { ActivitySection } from '../../../src/features/job/sections/ActivitySection';
 import { useAuth } from '../../../src/providers/AuthProvider';
 import { colors, spacing } from '../../../src/theme';
-import type { JobAnnouncement, JobNote } from '../../../src/types/domain';
 
 type SectionKey =
   | 'overview'
@@ -87,10 +86,8 @@ export default function JobDetailScreen() {
   const [uploadDocOpen, setUploadDocOpen] = useState(false);
   const [moreActionsOpen, setMoreActionsOpen] = useState(false);
 
-  const [notes, setNotes] = useState<JobNote[]>(() => (job ? notesForJob(job.id) : []));
-  const [announcements, setAnnouncements] = useState<JobAnnouncement[]>(() =>
-    job ? announcementsForJob(job.id) : []
-  );
+  const notes = job ? notesForJob(job.id) : [];
+  const announcements = job ? announcementsForJob(job.id) : [];
 
   const documents = job ? documentsForJob(job.id) : [];
   const checklists = job ? checklistsForJob(job.id) : [];
@@ -269,16 +266,9 @@ export default function JobDetailScreen() {
           {activeSection === 'deficiencies' ? (
             <DeficienciesSection job={job} person={person} deficiencies={deficiencies} />
           ) : null}
-          {activeSection === 'notes' ? (
-            <NotesSection job={job} person={person} notes={notes} setNotes={setNotes} />
-          ) : null}
+          {activeSection === 'notes' ? <NotesSection job={job} person={person} notes={notes} /> : null}
           {activeSection === 'announcements' ? (
-            <AnnouncementsSection
-              job={job}
-              person={person}
-              announcements={announcements}
-              setAnnouncements={setAnnouncements}
-            />
+            <AnnouncementsSection job={job} person={person} announcements={announcements} />
           ) : null}
           {activeSection === 'activity' ? <ActivitySection activity={activity} /> : null}
           {activeSection === 'completion' && isManager ? (

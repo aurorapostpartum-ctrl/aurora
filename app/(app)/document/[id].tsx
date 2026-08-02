@@ -7,6 +7,7 @@ import { Platform, Pressable, ScrollView, Share, StyleSheet, View } from 'react-
 import { Button, EmptyState, Screen, Text, TextField, Toast } from '../../../src/components/ui';
 import { markDocumentReviewed, useMockDataVersion } from '../../../src/data/mockStore';
 import { formatDate, getDocument, getJob, personName } from '../../../src/data/selectors';
+import { AcknowledgmentStatusSheet } from '../../../src/features/documents/AcknowledgmentStatusSheet';
 import { DrawingSheet, SHEET_HEIGHT, SHEET_WIDTH } from '../../../src/features/documents/DrawingSheet';
 import {
   CATEGORY_LABEL,
@@ -53,6 +54,7 @@ function DocumentViewerContent() {
   const [searchQuery, setSearchQuery] = useState('');
   const [matchCursor, setMatchCursor] = useState(0);
   const [toast, setToast] = useState<string | null>(null);
+  const [ackStatusOpen, setAckStatusOpen] = useState(false);
 
   const revision = doc
     ? (doc.revisions.find((r) => r.revisionNumber === viewingRevisionNumber) ?? currentRevision(doc))
@@ -70,6 +72,7 @@ function DocumentViewerContent() {
     );
   }
 
+  const isManager = person.role === 'manager';
   const current = currentRevision(doc);
   const isViewingArchived = revision.revisionNumber !== current.revisionNumber;
   const reviewState = reviewStateFor(doc, person.id);
@@ -251,6 +254,13 @@ function DocumentViewerContent() {
 
         <ToolbarButton icon="search" onPress={() => setSearchOpen((v) => !v)} active={searchOpen} accessibilityLabel="Search document" />
         <ToolbarButton icon="time-outline" onPress={() => setHistoryOpen(true)} accessibilityLabel="Revision history" />
+        {isManager && doc.reviewRequired ? (
+          <ToolbarButton
+            icon="checkmark-done-outline"
+            onPress={() => setAckStatusOpen(true)}
+            accessibilityLabel="Acknowledgment status"
+          />
+        ) : null}
         <ToolbarButton icon="download-outline" onPress={handleDownload} accessibilityLabel="Download" />
         <ToolbarButton icon="share-outline" onPress={handleShare} accessibilityLabel="Share" />
         <ToolbarButton icon="cloud-upload-outline" onPress={() => setUploadRevisionOpen(true)} accessibilityLabel="Upload new revision" />
@@ -312,6 +322,14 @@ function DocumentViewerContent() {
           setToast('New revision uploaded');
         }}
       />
+      {isManager && doc.reviewRequired ? (
+        <AcknowledgmentStatusSheet
+          visible={ackStatusOpen}
+          onClose={() => setAckStatusOpen(false)}
+          document={doc}
+          job={job}
+        />
+      ) : null}
 
       {toast ? <Toast message={toast} onHide={() => setToast(null)} /> : null}
     </Screen>

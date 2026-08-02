@@ -56,14 +56,19 @@ export interface DocumentRevision {
   pageCount: number;
 }
 
+export interface DocumentAcknowledgment {
+  personId: string;
+  acknowledgedAt: string;
+}
+
 export interface JobDocument {
   id: string;
   jobId: string;
   title: string;
   category: DocumentCategory;
   revisions: DocumentRevision[];
-  /** People who have reviewed the current revision. Cleared to just the uploader whenever a new revision is added. */
-  reviewedBy: string[];
+  /** "I have reviewed this document" acknowledgments for the current revision, each with a timestamp. Cleared to just the uploader whenever a new revision is added. */
+  acknowledgments: DocumentAcknowledgment[];
   reviewRequired: boolean;
 }
 
@@ -288,14 +293,27 @@ export interface ActivityEntry {
   summary: string;
 }
 
+export type NotificationType =
+  | 'job_assignment'
+  | 'document_uploaded'
+  | 'print_revision'
+  | 'document_acknowledgment_required'
+  | 'checklist_required'
+  | 'hazard_assessment_required'
+  | 'announcement'
+  | 'manager_comment';
+
 export interface AppNotification {
   id: string;
   jobId?: string;
+  type: NotificationType;
   title: string;
   body: string;
   createdAt: string;
   read: boolean;
   recipientId: string;
+  /** id of the document/checklist/hazard assessment this notification is about, for deep-linking straight to the record. */
+  recordId?: string;
 }
 
 export interface ProjectCompletionItem {

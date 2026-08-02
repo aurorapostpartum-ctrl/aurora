@@ -2,6 +2,7 @@ import { useSyncExternalStore } from 'react';
 
 import {
   ACTIVITY,
+  ANNOUNCEMENTS,
   CHECKLIST_TEMPLATES,
   DEFICIENCIES,
   DOCUMENTS,
@@ -9,6 +10,9 @@ import {
   JOBS,
   JOB_CHECKLISTS,
   JOB_HAZARD_ASSESSMENTS,
+  NOTES,
+  NOTIFICATIONS,
+  PEOPLE,
   PHOTOS,
   PROJECT_COMPLETIONS,
 } from './company';
@@ -16,6 +20,7 @@ import { demoNow, formatDate } from './selectors';
 import { createId } from '../lib/id';
 import type {
   ActivityType,
+  AppNotification,
   ChecklistItem,
   ChecklistItemStatus,
   ChecklistTemplate,
@@ -30,12 +35,15 @@ import type {
   HazardSourceFileType,
   HazardTemplateSection,
   Job,
+  JobAnnouncement,
   JobChecklist,
   JobDocument,
   JobHazardAssessment,
   JobHazardItem,
+  JobNote,
   JobPhoto,
   JobStatus,
+  NotificationType,
   PhotoCategory,
   ProjectCompletion,
   ProjectCompletionItem,
@@ -70,6 +78,62 @@ function getSnapshot() {
 
 export function useMockDataVersion() {
   return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+}
+
+// --- Notifications ---
+// Every meaningful action below pushes its own notification alongside its
+// activity entry — one per event, only to the job's other people, so the
+// notification center reflects real system actions rather than noise.
+
+interface NotifyInput {
+  jobId?: string;
+  type: NotificationType;
+  title: string;
+  body: string;
+  recordId?: string;
+  createdAt?: string;
+}
+
+function notify(recipientIds: string[], input: NotifyInput) {
+  const createdAt = input.createdAt ?? demoNow().toISOString();
+  for (const recipientId of new Set(recipientIds)) {
+    const notification: AppNotification = {
+      id: createId('ntf'),
+      jobId: input.jobId,
+      type: input.type,
+      title: input.title,
+      body: input.body,
+      createdAt,
+      read: false,
+      recipientId,
+      recordId: input.recordId,
+    };
+    NOTIFICATIONS.unshift(notification);
+  }
+}
+
+/** Everyone else with access to a job — used to scope notifications to people who'd actually care. */
+function otherJobPeople(job: Job, excludeId: string): string[] {
+  return [...job.managerIds, ...job.employeeIds].filter((id) => id !== excludeId);
+}
+
+export function markNotificationRead(notificationId: string) {
+  const index = NOTIFICATIONS.findIndex((n) => n.id === notificationId);
+  if (index === -1) return;
+  if (NOTIFICATIONS[index].read) return;
+  NOTIFICATIONS[index] = { ...NOTIFICATIONS[index], read: true };
+  emitChange();
+}
+
+export function markAllNotificationsRead(personId: string) {
+  let changed = false;
+  for (let i = 0; i < NOTIFICATIONS.length; i += 1) {
+    if (NOTIFICATIONS[i].recipientId === personId && !NOTIFICATIONS[i].read) {
+      NOTIFICATIONS[i] = { ...NOTIFICATIONS[i], read: true };
+      changed = true;
+    }
+  }
+  if (changed) emitChange();
 }
 
 const TAB_COLOR_PALETTE = ['#C4813C', '#5B7CA3', '#4C6B58', '#A45D4E', '#6E5A9E', '#8C6A4A'];
@@ -194,11 +258,20 @@ export function addEmployeesToJob(jobId: string, employeeIds: string[]): Job | u
   if (index === -1) return undefined;
 
   const existing = JOBS[index];
+  const newlyAdded = employeeIds.filter((id) => !existing.employeeIds.includes(id));
   const updated: Job = {
     ...existing,
     employeeIds: [...new Set([...existing.employeeIds, ...employeeIds])],
   };
   JOBS[index] = updated;
+
+  notify(newlyAdded, {
+    jobId,
+    type: 'job_assignment',
+    title: 'New job assignment',
+    body: `You've been added to ${updated.name}.`,
+  });
+
   emitChange();
   return updated;
 }
@@ -270,7 +343,7 @@ export function addDocument(input: AddDocumentInput): JobDocument {
     title: input.title.trim(),
     category: input.category,
     reviewRequired: input.reviewRequired,
-    reviewedBy: [],
+    acknowledgments: [],
     revisions: [
       {
         id: createId('rev'),
@@ -294,6 +367,28 @@ export function addDocument(input: AddDocumentInput): JobDocument {
     createdAt: now,
     summary: `Uploaded ${document.title}`,
   });
+
+  const job = JOBS.find((j) => j.id === input.jobId);
+  if (job) {
+    notify(otherJobPeople(job, input.uploadedBy), input.reviewRequired
+      ? {
+          jobId: input.jobId,
+          type: 'document_acknowledgment_required',
+          title: 'Document requires your acknowledgment',
+          body: `${document.title} was uploaded to ${job.name} — please review and acknowledge.`,
+          recordId: document.id,
+          createdAt: now,
+        }
+      : {
+          jobId: input.jobId,
+          type: 'document_uploaded',
+          title: 'New document uploaded',
+          body: `${document.title} was uploaded to ${job.name}.`,
+          recordId: document.id,
+          createdAt: now,
+        });
+  }
+
   emitChange();
   return document;
 }
@@ -331,7 +426,7 @@ export function addDocumentRevision(input: AddDocumentRevisionInput): JobDocumen
     ],
     // A fresh revision needs everyone's review again — except the person who
     // just uploaded it, who by definition has seen what's in it.
-    reviewedBy: doc.reviewRequired ? [input.uploadedBy] : doc.reviewedBy,
+    acknowledgments: doc.reviewRequired ? [{ personId: input.uploadedBy, acknowledgedAt: now }] : doc.acknowledgments,
   };
 
   DOCUMENTS[index] = updated;
@@ -343,6 +438,28 @@ export function addDocumentRevision(input: AddDocumentRevisionInput): JobDocumen
     createdAt: now,
     summary: `Uploaded Rev ${nextNumber} of ${doc.title}`,
   });
+
+  const job = JOBS.find((j) => j.id === doc.jobId);
+  if (job) {
+    notify(otherJobPeople(job, input.uploadedBy), doc.reviewRequired
+      ? {
+          jobId: doc.jobId,
+          type: 'document_acknowledgment_required',
+          title: 'Document requires your acknowledgment',
+          body: `${doc.title} was updated to Rev ${nextNumber} on ${job.name} — please review and acknowledge.`,
+          recordId: doc.id,
+          createdAt: now,
+        }
+      : {
+          jobId: doc.jobId,
+          type: 'print_revision',
+          title: 'New print revision',
+          body: `${doc.title} updated to Rev ${nextNumber} on ${job.name}.`,
+          recordId: doc.id,
+          createdAt: now,
+        });
+  }
+
   emitChange();
   return updated;
 }
@@ -352,9 +469,13 @@ export function markDocumentReviewed(documentId: string, personId: string): JobD
   if (index === -1) return undefined;
 
   const doc = DOCUMENTS[index];
-  if (doc.reviewedBy.includes(personId)) return doc;
+  if (doc.acknowledgments.some((a) => a.personId === personId)) return doc;
 
-  const updated: JobDocument = { ...doc, reviewedBy: [...doc.reviewedBy, personId] };
+  const now = demoNow().toISOString();
+  const updated: JobDocument = {
+    ...doc,
+    acknowledgments: [...doc.acknowledgments, { personId, acknowledgedAt: now }],
+  };
   DOCUMENTS[index] = updated;
 
   const current = updated.revisions.find((r) => r.isCurrent) ?? updated.revisions[0];
@@ -363,7 +484,7 @@ export function markDocumentReviewed(documentId: string, personId: string): JobD
     jobId: doc.jobId,
     type: 'document_acknowledged',
     actorId: personId,
-    createdAt: demoNow().toISOString(),
+    createdAt: now,
     summary: `Reviewed ${doc.title} (Rev ${current.revisionNumber})`,
   });
   emitChange();
@@ -584,6 +705,18 @@ export function generateChecklistFromTemplate(input: GenerateChecklistInput): Jo
     createdAt: now,
     summary: `Generated ${template.name}`,
   });
+
+  if (job) {
+    notify(otherJobPeople(job, input.generatedBy), {
+      jobId: input.jobId,
+      type: 'checklist_required',
+      title: 'Checklist required',
+      body: `${template.name} was generated for ${job.name} and needs to be completed.`,
+      recordId: record.id,
+      createdAt: now,
+    });
+  }
+
   emitChange();
   return record;
 }
@@ -870,6 +1003,18 @@ export function generateHazardAssessmentFromTemplate(
     createdAt: now,
     summary: `Generated ${template.name}`,
   });
+
+  if (job) {
+    notify(otherJobPeople(job, input.generatedBy), {
+      jobId: input.jobId,
+      type: 'hazard_assessment_required',
+      title: 'Hazard assessment required',
+      body: `${template.name} was generated for ${job.name} and needs to be completed.`,
+      recordId: record.id,
+      createdAt: now,
+    });
+  }
+
   emitChange();
   return record;
 }
@@ -1140,6 +1285,91 @@ export function addDeficiencyPhoto(deficiencyId: string, uploadedBy: string, uri
   });
 
   return updateDeficiencyRecord(deficiencyId, (d) => ({ ...d, photoIds: [...d.photoIds, photo.id] }));
+}
+
+// --- Notes & Announcements ---
+
+export function addNote(jobId: string, authorId: string, body: string): JobNote | undefined {
+  const job = JOBS.find((j) => j.id === jobId);
+  if (!job) return undefined;
+
+  const now = demoNow().toISOString();
+  const note: JobNote = {
+    id: createId('note'),
+    jobId,
+    authorId,
+    createdAt: now,
+    body: body.trim(),
+  };
+  if (!note.body) return undefined;
+
+  NOTES.unshift(note);
+  ACTIVITY.unshift({
+    id: createId('act'),
+    jobId,
+    type: 'note_added',
+    actorId: authorId,
+    createdAt: now,
+    summary: 'Added a note',
+  });
+
+  const author = PEOPLE.find((p) => p.id === authorId);
+  if (author?.role === 'manager') {
+    notify(job.employeeIds, {
+      jobId,
+      type: 'manager_comment',
+      title: 'Manager comments',
+      body: `${author.name}: "${note.body}"`,
+      createdAt: now,
+    });
+  }
+
+  emitChange();
+  return note;
+}
+
+export function addAnnouncement(
+  jobId: string,
+  authorId: string,
+  title: string,
+  body: string,
+  pinned = true
+): JobAnnouncement | undefined {
+  const job = JOBS.find((j) => j.id === jobId);
+  if (!job) return undefined;
+  if (!title.trim() || !body.trim()) return undefined;
+
+  const now = demoNow().toISOString();
+  const announcement: JobAnnouncement = {
+    id: createId('ann'),
+    jobId,
+    authorId,
+    createdAt: now,
+    title: title.trim(),
+    body: body.trim(),
+    pinned,
+  };
+
+  ANNOUNCEMENTS.unshift(announcement);
+  ACTIVITY.unshift({
+    id: createId('act'),
+    jobId,
+    type: 'announcement_posted',
+    actorId: authorId,
+    createdAt: now,
+    summary: `Posted announcement: ${announcement.title}`,
+  });
+
+  notify(otherJobPeople(job, authorId), {
+    jobId,
+    type: 'announcement',
+    title: 'Project announcement',
+    body: `${announcement.title} — ${job.name}`,
+    createdAt: now,
+  });
+
+  emitChange();
+  return announcement;
 }
 
 // --- Project Completion ---

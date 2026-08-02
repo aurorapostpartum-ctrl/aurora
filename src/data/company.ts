@@ -149,7 +149,7 @@ export const DOCUMENTS: JobDocument[] = [
     title: 'Architectural Floor Plans — Building A–D',
     category: 'architectural',
     reviewRequired: true,
-    reviewedBy: ['emp-john'],
+    acknowledgments: [{ personId: 'emp-john', acknowledgedAt: '2026-06-03T08:15:00Z' }],
     revisions: [
       {
         id: 'doc-rs-arch-r3',
@@ -189,7 +189,7 @@ export const DOCUMENTS: JobDocument[] = [
     title: 'Electrical Plan',
     category: 'electrical',
     reviewRequired: true,
-    reviewedBy: [],
+    acknowledgments: [],
     revisions: [
       {
         id: 'doc-rs-electrical-r4',
@@ -239,7 +239,7 @@ export const DOCUMENTS: JobDocument[] = [
     title: 'Plumbing Riser Diagrams',
     category: 'plumbing',
     reviewRequired: true,
-    reviewedBy: [],
+    acknowledgments: [],
     revisions: [
       {
         id: 'doc-rs-plumb-r2',
@@ -269,7 +269,7 @@ export const DOCUMENTS: JobDocument[] = [
     title: 'Mechanical HVAC Plans',
     category: 'mechanical',
     reviewRequired: true,
-    reviewedBy: ['emp-mike'],
+    acknowledgments: [{ personId: 'emp-mike', acknowledgedAt: '2026-02-03T10:00:00Z' }],
     revisions: [
       {
         id: 'doc-rs-mech-r1',
@@ -289,7 +289,7 @@ export const DOCUMENTS: JobDocument[] = [
     title: 'City of Austin Building Permit',
     category: 'permits',
     reviewRequired: false,
-    reviewedBy: [],
+    acknowledgments: [],
     revisions: [
       {
         id: 'doc-rs-permit-r1',
@@ -309,7 +309,7 @@ export const DOCUMENTS: JobDocument[] = [
     title: 'Division 23 — Mechanical Specifications',
     category: 'specifications',
     reviewRequired: false,
-    reviewedBy: [],
+    acknowledgments: [],
     revisions: [
       {
         id: 'doc-rs-specs-r1',
@@ -329,7 +329,10 @@ export const DOCUMENTS: JobDocument[] = [
     title: 'Structural Steel Erection Drawings',
     category: 'other',
     reviewRequired: true,
-    reviewedBy: ['emp-john', 'emp-alex'],
+    acknowledgments: [
+      { personId: 'emp-alex', acknowledgedAt: '2026-05-14T16:45:00Z' },
+      { personId: 'emp-john', acknowledgedAt: '2026-05-15T07:30:00Z' },
+    ],
     revisions: [
       {
         id: 'doc-wm-structural-r2',
@@ -359,7 +362,7 @@ export const DOCUMENTS: JobDocument[] = [
     title: 'Electrical Power & Lighting Plans — Core & Shell',
     category: 'electrical',
     reviewRequired: true,
-    reviewedBy: ['emp-alex'],
+    acknowledgments: [{ personId: 'emp-alex', acknowledgedAt: '2026-07-23T07:00:00Z' }],
     revisions: [
       {
         id: 'doc-wm-electrical-r2',
@@ -389,7 +392,7 @@ export const DOCUMENTS: JobDocument[] = [
     title: 'Prime Contract & General Conditions',
     category: 'contracts',
     reviewRequired: false,
-    reviewedBy: [],
+    acknowledgments: [],
     revisions: [
       {
         id: 'doc-wm-contract-r1',
@@ -409,7 +412,10 @@ export const DOCUMENTS: JobDocument[] = [
     title: 'Civil Site & Grading Plan',
     category: 'other',
     reviewRequired: true,
-    reviewedBy: ['emp-mike', 'emp-alex'],
+    acknowledgments: [
+      { personId: 'emp-alex', acknowledgedAt: '2025-11-05T15:20:00Z' },
+      { personId: 'emp-mike', acknowledgedAt: '2025-11-06T08:00:00Z' },
+    ],
     revisions: [
       {
         id: 'doc-ar-civil-r2',
@@ -439,7 +445,7 @@ export const DOCUMENTS: JobDocument[] = [
     title: 'Final Building Inspection Report',
     category: 'other',
     reviewRequired: false,
-    reviewedBy: [],
+    acknowledgments: [],
     revisions: [
       {
         id: 'doc-ar-finalinspect-r1',
@@ -1262,12 +1268,113 @@ export const ACTIVITY: ActivityEntry[] = [
 ];
 
 export const NOTIFICATIONS: AppNotification[] = [
-  { id: 'ntf-1', jobId: 'job-riverstone', title: 'New deficiency reported', body: 'Mike Johnson reported a high-priority deficiency on Riverstone Development.', createdAt: '2026-07-29T14:12:00Z', read: false, recipientId: 'mgr-sarah' },
-  { id: 'ntf-2', jobId: 'job-riverstone', title: 'Document revision uploaded', body: 'Plumbing Riser Diagrams updated to Rev B — acknowledgement required.', createdAt: '2026-07-10T11:16:00Z', read: false, recipientId: 'emp-john' },
-  { id: 'ntf-3', jobId: 'job-westmount', title: 'New deficiency reported', body: 'Daniel Brooks reported a high-priority deficiency on Westmount Commercial.', createdAt: '2026-07-26T08:22:00Z', read: true, recipientId: 'mgr-sarah' },
-  { id: 'ntf-4', jobId: 'job-westmount', title: 'Hazard assessment awaiting sign-off', body: 'Hot Work Hazard Assessment has an unacknowledged hazard.', createdAt: '2026-07-21T06:50:00Z', read: false, recipientId: 'mgr-daniel' },
-  { id: 'ntf-5', jobId: 'job-aspen', title: 'Checklist completed', body: 'Mike Johnson completed the Pre-Pour Concrete Checklist for Lot 19.', createdAt: '2026-07-15T12:05:00Z', read: true, recipientId: 'mgr-daniel' },
-  { id: 'ntf-6', jobId: 'job-aspen', title: 'Announcement posted', body: 'New announcement on Aspen Ridge Homes: Model home ready for buyer tours.', createdAt: '2026-07-10T09:02:00Z', read: true, recipientId: 'emp-mike' },
+  {
+    id: 'ntf-1',
+    jobId: 'job-riverstone',
+    type: 'document_acknowledgment_required',
+    title: 'Document requires your acknowledgment',
+    body: 'Electrical Plan was updated to Rev 4 on Riverstone Development — please review and acknowledge.',
+    createdAt: '2026-07-29T15:12:00Z',
+    read: false,
+    recipientId: 'emp-john',
+    recordId: 'doc-rs-electrical',
+  },
+  {
+    id: 'ntf-2',
+    jobId: 'job-riverstone',
+    type: 'checklist_required',
+    title: 'Checklist required',
+    body: 'John Smith generated the Commercial Plumbing Final Checklist for Riverstone Development — it still needs to be completed.',
+    createdAt: '2026-07-28T09:02:00Z',
+    read: false,
+    recipientId: 'emp-mike',
+    recordId: 'jcl-rs-2',
+  },
+  {
+    id: 'ntf-3',
+    jobId: 'job-westmount',
+    type: 'hazard_assessment_required',
+    title: 'Hazard assessment required',
+    body: 'The Hot Work Hazard Assessment on Westmount Commercial is in progress and needs to be completed.',
+    createdAt: '2026-07-21T06:47:00Z',
+    read: false,
+    recipientId: 'mgr-daniel',
+    recordId: 'jha-wm-1',
+  },
+  {
+    id: 'ntf-4',
+    jobId: 'job-riverstone',
+    type: 'print_revision',
+    title: 'New print revision',
+    body: 'Plumbing Riser Diagrams updated to Rev 2 on Riverstone Development.',
+    createdAt: '2026-07-10T11:16:00Z',
+    read: true,
+    recipientId: 'emp-john',
+    recordId: 'doc-rs-plumb',
+  },
+  {
+    id: 'ntf-5',
+    jobId: 'job-aspen',
+    type: 'document_uploaded',
+    title: 'New document uploaded',
+    body: 'Daniel Brooks uploaded Final Building Inspection Report to Aspen Ridge Homes.',
+    createdAt: '2026-07-28T13:05:00Z',
+    read: true,
+    recipientId: 'emp-mike',
+    recordId: 'doc-ar-finalinspect',
+  },
+  {
+    id: 'ntf-6',
+    jobId: 'job-aspen',
+    type: 'announcement',
+    title: 'Project announcement',
+    body: 'New announcement on Aspen Ridge Homes: Model home ready for buyer tours.',
+    createdAt: '2026-07-10T09:02:00Z',
+    read: true,
+    recipientId: 'emp-mike',
+  },
+  {
+    id: 'ntf-7',
+    jobId: 'job-riverstone',
+    type: 'manager_comment',
+    title: 'Manager comments',
+    body: 'Sarah Miller: "Concrete supplier confirmed Building A podium pour for July 29, weather permitting. Crew to be on site by 6am."',
+    createdAt: '2026-07-25T16:02:00Z',
+    read: true,
+    recipientId: 'emp-john',
+  },
+  {
+    id: 'ntf-8',
+    jobId: 'job-westmount',
+    type: 'job_assignment',
+    title: 'New job assignment',
+    body: "You've been added to Westmount Commercial.",
+    createdAt: '2026-01-04T09:00:00Z',
+    read: true,
+    recipientId: 'emp-john',
+  },
+  {
+    id: 'ntf-9',
+    jobId: 'job-westmount',
+    type: 'hazard_assessment_required',
+    title: 'Hazard assessment required',
+    body: 'Alex Turner generated the Hot Work Hazard Assessment for Westmount Commercial — it still needs to be completed.',
+    createdAt: '2026-07-21T06:47:00Z',
+    read: false,
+    recipientId: 'mgr-sarah',
+    recordId: 'jha-wm-1',
+  },
+  {
+    id: 'ntf-10',
+    jobId: 'job-riverstone',
+    type: 'checklist_required',
+    title: 'Checklist required',
+    body: 'John Smith generated the Commercial Plumbing Final Checklist for Riverstone Development — it still needs to be completed.',
+    createdAt: '2026-07-28T09:02:00Z',
+    read: false,
+    recipientId: 'mgr-sarah',
+    recordId: 'jcl-rs-2',
+  },
 ];
 
 export const PROJECT_COMPLETIONS: ProjectCompletion[] = [

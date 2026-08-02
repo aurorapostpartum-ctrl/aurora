@@ -7,6 +7,7 @@ import { BottomNav } from './BottomNav';
 import { Header, HEADER_HEIGHT } from './Header';
 import { ProfileMenu } from './ProfileMenu';
 import { Sidebar } from './Sidebar';
+import { useMockDataVersion } from '../../data/mockStore';
 import { notificationsForPerson } from '../../data/selectors';
 import { useBreakpoint } from '../../hooks/useBreakpoint';
 import { navItemsForRole } from '../../navigation/navConfig';
@@ -22,6 +23,7 @@ export function AppShell({ children }: AppShellProps) {
   const { isSidebarLayout } = useBreakpoint();
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
+  const version = useMockDataVersion();
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
 
   const items = useMemo(() => (person ? navItemsForRole(person.role) : []), [person]);
@@ -36,7 +38,7 @@ export function AppShell({ children }: AppShellProps) {
   const unreadCount = useMemo(() => {
     if (!person) return 0;
     return notificationsForPerson(person.id).filter((n) => !n.read).length;
-  }, [person]);
+  }, [person, version]);
 
   if (!person) return null;
 
