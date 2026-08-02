@@ -14,6 +14,7 @@ const LINKS: {
   href: string;
 }[] = [
   { icon: 'search-outline', label: 'Search', description: 'Find jobs, documents and more', href: '/(app)/(shell)/search' },
+  { icon: 'time-outline', label: 'Activity History', description: 'Timeline of activity on your jobs', href: '/(app)/activity-history' },
   { icon: 'people-outline', label: 'Employees', description: 'Company directory', href: '/(app)/(shell)/employees' },
   { icon: 'copy-outline', label: 'Templates', description: 'Checklist & hazard assessment templates', href: '/(app)/(shell)/templates' },
   { icon: 'settings-outline', label: 'Settings', description: 'Your account', href: '/(app)/settings' },

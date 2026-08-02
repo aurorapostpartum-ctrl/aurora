@@ -3,28 +3,9 @@ import { StyleSheet, View } from 'react-native';
 
 import { EmptyState, Text } from '../../../components/ui';
 import { formatDate, personName, timeAgo } from '../../../data/selectors';
+import { ACTIVITY_ICON, lowercaseLeadingVerb } from '../../activity/activityMeta';
 import { colors, spacing } from '../../../theme';
-import type { ActivityEntry, ActivityType } from '../../../types/domain';
-
-const ACTIVITY_ICON: Record<ActivityType, keyof typeof Ionicons.glyphMap> = {
-  document_uploaded: 'document-text-outline',
-  document_revised: 'document-text-outline',
-  document_acknowledged: 'checkmark-done-outline',
-  checklist_generated: 'checkbox-outline',
-  checklist_completed: 'checkbox',
-  hazard_assessment_generated: 'warning-outline',
-  hazard_assessment_completed: 'shield-checkmark-outline',
-  photo_uploaded: 'image-outline',
-  deficiency_reported: 'alert-circle-outline',
-  deficiency_assigned: 'person-add-outline',
-  deficiency_status_changed: 'sync-outline',
-  deficiency_completed: 'checkmark-circle-outline',
-  note_added: 'chatbubble-ellipses-outline',
-  announcement_posted: 'megaphone-outline',
-  job_created: 'folder-open-outline',
-  job_completed: 'ribbon-outline',
-  employee_assigned: 'person-add-outline',
-};
+import type { ActivityEntry } from '../../../types/domain';
 
 export function ActivitySection({ activity }: { activity: ActivityEntry[] }) {
   if (activity.length === 0) {
@@ -47,10 +28,7 @@ export function ActivitySection({ activity }: { activity: ActivityEntry[] }) {
                 {personName(entry.actorId)}
               </Text>{' '}
               <Text variant="subhead" color={colors.textSecondary}>
-                {entry.summary.replace(
-                  /^(Uploaded|Reported|Generated|Completed|Resolved|Posted|Assigned|Unassigned|Marked|Submitted) /,
-                  (m) => m.toLowerCase()
-                )}
+                {lowercaseLeadingVerb(entry.summary)}
               </Text>
             </Text>
             <Text variant="caption1" color={colors.textTertiary} style={styles.time}>

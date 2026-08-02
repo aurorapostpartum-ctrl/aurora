@@ -8,31 +8,11 @@ import { Button, Card, Text } from '../../../src/components/ui';
 import { DEFICIENCIES, JOBS, JOB_CHECKLISTS, JOB_HAZARD_ASSESSMENTS } from '../../../src/data/company';
 import { useMockDataVersion } from '../../../src/data/mockStore';
 import { activityForJob, allActivitySorted, getJob, isWithinLastDays, personName, timeAgo } from '../../../src/data/selectors';
+import { ACTIVITY_ICON } from '../../../src/features/activity/activityMeta';
 import { JobFolderCard } from '../../../src/features/jobs/JobFolderCard';
 import { RoleGate } from '../../../src/navigation/RoleGate';
 import { useAuth } from '../../../src/providers/AuthProvider';
 import { colors, spacing } from '../../../src/theme';
-import type { ActivityType } from '../../../src/types/domain';
-
-const ACTIVITY_ICON: Record<ActivityType, keyof typeof Ionicons.glyphMap> = {
-  document_uploaded: 'document-text-outline',
-  document_revised: 'document-text-outline',
-  document_acknowledged: 'checkmark-done-outline',
-  checklist_generated: 'checkbox-outline',
-  checklist_completed: 'checkbox',
-  hazard_assessment_generated: 'warning-outline',
-  hazard_assessment_completed: 'shield-checkmark-outline',
-  photo_uploaded: 'image-outline',
-  deficiency_reported: 'alert-circle-outline',
-  deficiency_assigned: 'person-add-outline',
-  deficiency_status_changed: 'sync-outline',
-  deficiency_completed: 'checkmark-circle-outline',
-  note_added: 'chatbubble-ellipses-outline',
-  announcement_posted: 'megaphone-outline',
-  job_created: 'folder-open-outline',
-  job_completed: 'ribbon-outline',
-  employee_assigned: 'person-add-outline',
-};
 
 export default function DashboardScreen() {
   return (
@@ -146,9 +126,15 @@ function DashboardContent() {
         </Animated.View>
 
         <Animated.View entering={FadeInDown.duration(360).delay(160)}>
-          <Text variant="title3" style={styles.sectionTitle}>
-            Recent Activity
-          </Text>
+          <View style={styles.sectionHeaderRow}>
+            <Text variant="title3">Recent Activity</Text>
+            <Pressable onPress={() => router.push('/(app)/activity-history' as never)} style={styles.viewAllRow}>
+              <Text variant="subhead" color={colors.accentStrong}>
+                View all
+              </Text>
+              <Ionicons name="chevron-forward" size={14} color={colors.accentStrong} />
+            </Pressable>
+          </View>
           <Card style={styles.activityCard}>
             {activity.map((entry, index) => (
               <Pressable
@@ -289,9 +275,6 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     flexBasis: 320,
     maxWidth: 420,
-  },
-  sectionTitle: {
-    marginBottom: spacing.sm,
   },
   activityCard: {
     padding: spacing.xs,

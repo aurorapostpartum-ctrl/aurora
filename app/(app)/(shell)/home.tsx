@@ -129,9 +129,15 @@ function HomeContent() {
 
         {recentActivity.length > 0 ? (
           <Animated.View entering={FadeInDown.duration(360).delay(140)}>
-            <Text variant="title3" style={styles.sectionTitle}>
-              Recent Activity
-            </Text>
+            <View style={styles.headerRow}>
+              <Text variant="title3">Recent Activity</Text>
+              <Pressable onPress={() => router.push('/(app)/activity-history' as never)} style={styles.viewAllRow}>
+                <Text variant="subhead" color={colors.accentStrong}>
+                  View all
+                </Text>
+                <Ionicons name="chevron-forward" size={14} color={colors.accentStrong} />
+              </Pressable>
+            </View>
             <Card style={styles.activityCard}>
               {recentActivity.map((entry, index) => (
                 <Pressable
@@ -200,9 +206,6 @@ const styles = StyleSheet.create({
   section: {
     marginBottom: spacing.xl,
   },
-  sectionTitle: {
-    marginBottom: spacing.sm,
-  },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
@@ -211,6 +214,11 @@ const styles = StyleSheet.create({
   },
   myJobsTitle: {
     letterSpacing: 1,
+  },
+  viewAllRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
   },
   jobGrid: {
     flexDirection: 'row',
