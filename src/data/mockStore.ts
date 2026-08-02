@@ -10,6 +10,7 @@ import {
   JOB_CHECKLISTS,
   JOB_HAZARD_ASSESSMENTS,
   PHOTOS,
+  PROJECT_COMPLETIONS,
 } from './company';
 import { demoNow, formatDate } from './selectors';
 import { createId } from '../lib/id';
@@ -36,6 +37,8 @@ import type {
   JobPhoto,
   JobStatus,
   PhotoCategory,
+  ProjectCompletion,
+  ProjectCompletionItem,
   ProjectType,
   TemplateVisibility,
 } from '../types/domain';
@@ -85,6 +88,25 @@ export interface CreateJobInput {
   hazardTemplateIds: string[];
 }
 
+const DEFAULT_COMPLETION_LABELS = [
+  'Work completed',
+  'Final inspection completed',
+  'Final photos uploaded',
+  'Deficiencies resolved',
+  'Client walkthrough completed',
+  'Client sign-off completed',
+  'Final documents uploaded',
+];
+
+function defaultCompletionChecklist(): ProjectCompletionItem[] {
+  return DEFAULT_COMPLETION_LABELS.map((label) => ({
+    id: createId('pc'),
+    label,
+    done: false,
+    required: true,
+  }));
+}
+
 export function createJob(input: CreateJobInput): Job {
   const now = demoNow().toISOString();
 
@@ -121,6 +143,13 @@ export function createJob(input: CreateJobInput): Job {
   for (const templateId of input.hazardTemplateIds) {
     generateHazardAssessmentFromTemplate({ jobId: job.id, templateId, generatedBy: input.managerId });
   }
+
+  PROJECT_COMPLETIONS.unshift({
+    jobId: job.id,
+    isComplete: false,
+    finalNotes: '',
+    checklist: defaultCompletionChecklist(),
+  });
 
   emitChange();
   return job;
@@ -1111,4 +1140,139 @@ export function addDeficiencyPhoto(deficiencyId: string, uploadedBy: string, uri
   });
 
   return updateDeficiencyRecord(deficiencyId, (d) => ({ ...d, photoIds: [...d.photoIds, photo.id] }));
+}
+
+// --- Project Completion ---
+// Marking a job complete only flips its status and stamps the completion
+// record — every document, revision, checklist, hazard assessment, photo,
+// and activity entry stays exactly where it is, untouched.
+
+function updateCompletionRecord(
+  jobId: string,
+  updater: (completion: ProjectCompletion) => ProjectCompletion
+): ProjectCompletion | undefined {
+  const index = PROJECT_COMPLETIONS.findIndex((c) => c.jobId === jobId);
+  if (index === -1) return undefined;
+
+  const updated = updater(PROJECT_COMPLETIONS[index]);
+  PROJECT_COMPLETIONS[index] = updated;
+  emitChange();
+  return updated;
+}
+
+function updateCompletionItems(
+  jobId: string,
+  updater: (items: ProjectCompletionItem[]) => ProjectCompletionItem[]
+): ProjectCompletion | undefined {
+  return updateCompletionRecord(jobId, (c) => ({ ...c, checklist: updater(c.checklist) }));
+}
+
+export function addCompletionItem(jobId: string, label: string, required: boolean): ProjectCompletion | undefined {
+  const text = label.trim();
+  if (!text) return undefined;
+  return updateCompletionItems(jobId, (items) => [...items, { id: createId('pc'), label: text, done: false, required }]);
+}
+
+export function removeCompletionItem(jobId: string, itemId: string): ProjectCompletion | undefined {
+  return updateCompletionItems(jobId, (items) => items.filter((i) => i.id !== itemId));
+}
+
+export function setCompletionItemRequired(jobId: string, itemId: string, required: boolean): ProjectCompletion | undefined {
+  return updateCompletionItems(jobId, (items) => items.map((i) => (i.id === itemId ? { ...i, required } : i)));
+}
+
+export function setCompletionItemDone(
+  jobId: string,
+  itemId: string,
+  done: boolean,
+  actorId: string
+): ProjectCompletion | undefined {
+  const now = demoNow().toISOString();
+  return updateCompletionItems(jobId, (items) =>
+    items.map((i) =>
+      i.id === itemId ? { ...i, done, completedBy: done ? actorId : undefined, completedAt: done ? now : undefined } : i
+    )
+  );
+}
+
+export function updateCompletionItemNotes(jobId: string, itemId: string, notes: string): ProjectCompletion | undefined {
+  return updateCompletionItems(jobId, (items) =>
+    items.map((i) => (i.id === itemId ? { ...i, notes: notes || undefined } : i))
+  );
+}
+
+export function addCompletionItemPhoto(
+  jobId: string,
+  itemId: string,
+  uploadedBy: string,
+  uri?: string
+): ProjectCompletion | undefined {
+  const completion = PROJECT_COMPLETIONS.find((c) => c.jobId === jobId);
+  const item = completion?.checklist.find((i) => i.id === itemId);
+  if (!completion || !item) return undefined;
+
+  const photo = addPhoto({
+    jobId,
+    caption: item.label,
+    uploadedBy,
+    tags: ['completion'],
+    uri,
+    category: 'completion',
+    linkedRecordId: jobId,
+    linkedRecordLabel: 'Project Completion',
+  });
+
+  return updateCompletionItems(jobId, (items) =>
+    items.map((i) => (i.id === itemId ? { ...i, photoIds: [...(i.photoIds ?? []), photo.id] } : i))
+  );
+}
+
+export function attachCompletionItemDocument(
+  jobId: string,
+  itemId: string,
+  documentId: string
+): ProjectCompletion | undefined {
+  return updateCompletionItems(jobId, (items) =>
+    items.map((i) =>
+      i.id === itemId && !(i.documentIds ?? []).includes(documentId)
+        ? { ...i, documentIds: [...(i.documentIds ?? []), documentId] }
+        : i
+    )
+  );
+}
+
+export function removeCompletionItemDocument(
+  jobId: string,
+  itemId: string,
+  documentId: string
+): ProjectCompletion | undefined {
+  return updateCompletionItems(jobId, (items) =>
+    items.map((i) => (i.id === itemId ? { ...i, documentIds: (i.documentIds ?? []).filter((d) => d !== documentId) } : i))
+  );
+}
+
+export function updateCompletionFinalNotes(jobId: string, finalNotes: string): ProjectCompletion | undefined {
+  return updateCompletionRecord(jobId, (c) => ({ ...c, finalNotes }));
+}
+
+export function markJobComplete(jobId: string, actorId: string): ProjectCompletion | undefined {
+  const job = JOBS.find((j) => j.id === jobId);
+  if (!job) return undefined;
+  const now = demoNow().toISOString();
+
+  const updated = updateCompletionRecord(jobId, (c) => ({ ...c, isComplete: true, completedAt: now, completedBy: actorId }));
+  if (!updated) return undefined;
+
+  setJobStatus(jobId, 'completed');
+
+  ACTIVITY.unshift({
+    id: createId('act'),
+    jobId,
+    type: 'job_completed',
+    actorId,
+    createdAt: now,
+    summary: `Marked ${job.name} complete`,
+  });
+  emitChange();
+  return updated;
 }

@@ -23,6 +23,16 @@ export function PhotoViewerModal({ photo, onClose }: PhotoViewerModalProps) {
   if (!photo) return null;
 
   const linkedRoute = LINKED_ROUTE[photo.category];
+  const canJump = photo.category === 'completion' || Boolean(linkedRoute);
+
+  const handleJump = () => {
+    onClose();
+    if (photo.category === 'completion') {
+      router.push({ pathname: '/(app)/job/[id]', params: { id: photo.jobId, section: 'completion' } });
+    } else if (linkedRoute) {
+      router.push(`${linkedRoute}/${photo.linkedRecordId}` as never);
+    }
+  };
 
   return (
     <Modal visible={Boolean(photo)} onClose={onClose} maxWidth={560}>
@@ -46,14 +56,8 @@ export function PhotoViewerModal({ photo, onClose }: PhotoViewerModalProps) {
         {personName(photo.uploadedBy)} · {formatLongDate(photo.uploadedAt)}
       </Text>
 
-      {photo.linkedRecordLabel && linkedRoute ? (
-        <Pressable
-          onPress={() => {
-            onClose();
-            router.push(`${linkedRoute}/${photo.linkedRecordId}` as never);
-          }}
-          style={styles.linkedRow}
-        >
+      {photo.linkedRecordLabel && canJump ? (
+        <Pressable onPress={handleJump} style={styles.linkedRow}>
           <Ionicons name="link-outline" size={14} color={colors.accentStrong} />
           <Text variant="footnote" color={colors.accentStrong} style={styles.linkedLabel} numberOfLines={1}>
             View {photo.linkedRecordLabel}

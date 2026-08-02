@@ -34,7 +34,7 @@ import { PhotosSection } from '../../../src/features/job/sections/PhotosSection'
 import { ActivitySection } from '../../../src/features/job/sections/ActivitySection';
 import { useAuth } from '../../../src/providers/AuthProvider';
 import { colors, spacing } from '../../../src/theme';
-import type { JobAnnouncement, JobNote, ProjectCompletion } from '../../../src/types/domain';
+import type { JobAnnouncement, JobNote } from '../../../src/types/domain';
 
 type SectionKey =
   | 'overview'
@@ -91,13 +91,11 @@ export default function JobDetailScreen() {
   const [announcements, setAnnouncements] = useState<JobAnnouncement[]>(() =>
     job ? announcementsForJob(job.id) : []
   );
-  const [completion, setCompletion] = useState<ProjectCompletion | undefined>(() =>
-    job ? completionForJob(job.id) : undefined
-  );
 
   const documents = job ? documentsForJob(job.id) : [];
   const checklists = job ? checklistsForJob(job.id) : [];
   const hazards = job ? hazardAssessmentsForJob(job.id) : [];
+  const completion = job ? completionForJob(job.id) : undefined;
   const photos = job ? photosForJob(job.id) : [];
   const deficiencies = job ? deficienciesForJob(job.id) : [];
   const activity = useMemo(() => (job ? activityForJob(job.id) : []), [job, version]);
@@ -287,9 +285,9 @@ export default function JobDetailScreen() {
             <CompletionSection
               job={job}
               isManager={isManager}
-              actorId={person.id}
+              person={person}
               completion={completion}
-              setCompletion={setCompletion}
+              documents={documents}
               openDeficiencies={deficiencies.filter((d) => d.status !== 'complete')}
             />
           ) : null}

@@ -6,6 +6,7 @@ export const PHOTO_CATEGORY_OPTIONS: { value: PhotoCategory; label: string; icon
   { value: 'checklist', label: 'Checklists', icon: 'checkbox-outline' },
   { value: 'hazard_assessment', label: 'Hazard Assessments', icon: 'warning-outline' },
   { value: 'deficiency', label: 'Deficiencies', icon: 'alert-circle-outline' },
+  { value: 'completion', label: 'Project Completion', icon: 'ribbon-outline' },
 ];
 
 export function categoryLabel(category: PhotoCategory): string {

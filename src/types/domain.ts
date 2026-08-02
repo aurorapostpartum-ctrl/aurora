@@ -204,7 +204,7 @@ export interface JobHazardAssessment {
 }
 
 /** What a photo is attached to: a general Job Folder shot, or a specific record within it. */
-export type PhotoCategory = 'general' | 'checklist' | 'hazard_assessment' | 'deficiency';
+export type PhotoCategory = 'general' | 'checklist' | 'hazard_assessment' | 'deficiency' | 'completion';
 
 export interface JobPhoto {
   id: string;
@@ -302,6 +302,12 @@ export interface ProjectCompletionItem {
   id: string;
   label: string;
   done: boolean;
+  required: boolean;
+  notes?: string;
+  photoIds?: string[];
+  documentIds?: string[];
+  completedBy?: string;
+  completedAt?: string;
 }
 
 export interface ProjectCompletion {
