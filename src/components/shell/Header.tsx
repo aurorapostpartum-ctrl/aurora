@@ -7,6 +7,7 @@ import { Avatar, Text } from '../ui';
 import { COMPANY } from '../../data/company';
 import { useAuth } from '../../providers/AuthProvider';
 import { colors, spacing } from '../../theme';
+import { SyncStatusPill } from '../offline/SyncStatusPill';
 
 export const HEADER_HEIGHT = 60;
 
@@ -68,6 +69,8 @@ export function Header({ title, isSidebarLayout, unreadCount, onAvatarPress }: H
             </View>
           ) : null}
         </Pressable>
+
+        <SyncStatusPill />
 
         <Pressable onPress={onAvatarPress} hitSlop={6}>
           <Avatar initials={person.initials} color={person.avatarColor} size={32} />

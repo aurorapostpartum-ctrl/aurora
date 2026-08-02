@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react';
 import { Image, Pressable, StyleSheet, View } from 'react-native';
 
 import { Button, Chip, EmptyState, SelectModal, Text } from '../../../components/ui';
+import { useSyncStateForRecord } from '../../../data/offlineStore';
 import { getPerson, personName, timeAgo } from '../../../data/selectors';
 import { PhotoViewerModal } from '../../photos/PhotoViewerModal';
 import { DATE_FILTER_OPTIONS, PHOTO_CATEGORY_OPTIONS, categoryIcon, isWithinDateFilter, type DateFilterOption } from '../../photos/photoMeta';
@@ -94,26 +95,7 @@ export function PhotosSection({ photos, job, person }: PhotosSectionProps) {
       ) : (
         <View style={styles.grid}>
           {filteredPhotos.map((photo) => (
-            <Pressable key={photo.id} style={styles.tile} onPress={() => setViewerPhoto(photo)}>
-              <View style={styles.thumbWrap}>
-                {photo.uri ? (
-                  <Image source={{ uri: photo.uri }} style={styles.thumb} resizeMode="cover" />
-                ) : (
-                  <View style={[styles.thumb, styles.swatch, { backgroundColor: photo.swatch }]}>
-                    <Ionicons name="image" size={22} color="rgba(255,255,255,0.55)" />
-                  </View>
-                )}
-                <View style={styles.categoryBadge}>
-                  <Ionicons name={categoryIcon(photo.category)} size={11} color={colors.textOnAccent} />
-                </View>
-              </View>
-              <Text variant="footnote" numberOfLines={1} style={styles.caption}>
-                {photo.caption}
-              </Text>
-              <Text variant="caption2" color={colors.textTertiary} numberOfLines={1}>
-                {personName(photo.uploadedBy)} · {timeAgo(photo.uploadedAt)}
-              </Text>
-            </Pressable>
+            <PhotoTile key={photo.id} photo={photo} onPress={() => setViewerPhoto(photo)} />
           ))}
         </View>
       )}
@@ -129,6 +111,43 @@ export function PhotosSection({ photos, job, person }: PhotosSectionProps) {
         onClose={() => setEmployeePickerOpen(false)}
       />
     </View>
+  );
+}
+
+function PhotoTile({ photo, onPress }: { photo: JobPhoto; onPress: () => void }) {
+  const syncState = useSyncStateForRecord(photo.id);
+
+  return (
+    <Pressable style={styles.tile} onPress={onPress}>
+      <View style={styles.thumbWrap}>
+        {photo.uri ? (
+          <Image source={{ uri: photo.uri }} style={styles.thumb} resizeMode="cover" />
+        ) : (
+          <View style={[styles.thumb, styles.swatch, { backgroundColor: photo.swatch }]}>
+            <Ionicons name="image" size={22} color="rgba(255,255,255,0.55)" />
+          </View>
+        )}
+        <View style={styles.categoryBadge}>
+          <Ionicons name={categoryIcon(photo.category)} size={11} color={colors.textOnAccent} />
+        </View>
+        {syncState ? (
+          <View style={[styles.syncBadge, syncState === 'failed' && styles.syncBadgeFailed]}>
+            <Ionicons
+              name={syncState === 'failed' ? 'alert-circle' : 'cloud-upload-outline'}
+              size={11}
+              color={colors.textOnAccent}
+            />
+          </View>
+        ) : null}
+      </View>
+      <Text variant="footnote" numberOfLines={1} style={styles.caption}>
+        {photo.caption}
+      </Text>
+      <Text variant="caption2" color={colors.textTertiary} numberOfLines={1}>
+        {personName(photo.uploadedBy)} · {timeAgo(photo.uploadedAt)}
+        {syncState ? ` · ${syncState === 'failed' ? 'Sync failed' : 'Pending sync'}` : ''}
+      </Text>
+    </Pressable>
   );
 }
 
@@ -195,6 +214,20 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.55)',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  syncBadge: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: colors.accentStrong,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  syncBadgeFailed: {
+    backgroundColor: colors.danger,
   },
   caption: {
     marginBottom: 1,

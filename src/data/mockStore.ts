@@ -16,6 +16,7 @@ import {
   PHOTOS,
   PROJECT_COMPLETIONS,
 } from './company';
+import { enqueueSync } from './offlineStore';
 import { demoNow, formatDate } from './selectors';
 import { createId } from '../lib/id';
 import type {
@@ -667,6 +668,7 @@ export function addPhoto(input: AddPhotoInput): JobPhoto {
     createdAt: photo.uploadedAt,
     summary: `Uploaded photo: ${photo.caption}`,
   });
+  enqueueSync('photo', photo.id, input.jobId, photo.caption);
   emitChange();
   return photo;
 }
@@ -803,6 +805,7 @@ export function submitChecklist(checklistId: string, submittedBy: string): JobCh
     createdAt: now,
     summary: `Submitted ${checklist.templateName}`,
   });
+  enqueueSync('checklist', checklist.id, checklist.jobId, checklist.templateName);
   emitChange();
   return updated;
 }
@@ -1141,6 +1144,7 @@ export function submitHazardAssessment(recordId: string, submittedBy: string): J
     createdAt: now,
     summary: `Submitted ${record.templateName}`,
   });
+  enqueueSync('hazard', record.id, record.jobId, record.templateName);
   emitChange();
   return updated;
 }

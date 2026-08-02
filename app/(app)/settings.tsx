@@ -2,11 +2,12 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, Platform, Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { Avatar, Button, GlassCard, Screen, StatusBadge, Text } from '../../src/components/ui';
 import { COMPANY } from '../../src/data/company';
+import { isSimulatedOffline, setSimulatedOffline, useOfflineVersion, useOverallSyncStatus } from '../../src/data/offlineStore';
 import { useAuth } from '../../src/providers/AuthProvider';
 import { colors, spacing } from '../../src/theme';
 
@@ -103,6 +104,15 @@ export default function SettingsScreen() {
             </GlassCard>
           </Animated.View>
 
+          <Animated.View entering={FadeInDown.duration(400).delay(170)}>
+            <Text variant="caption1" color={colors.textTertiary} style={styles.sectionLabel}>
+              OFFLINE
+            </Text>
+            <GlassCard style={styles.groupCard}>
+              <OfflineToggleRow />
+            </GlassCard>
+          </Animated.View>
+
           <Animated.View entering={FadeInDown.duration(400).delay(190)} style={styles.signOutBlock}>
             <Button
               label="Sign Out"
@@ -120,6 +130,39 @@ export default function SettingsScreen() {
         </View>
       </ScrollView>
     </Screen>
+  );
+}
+
+const SYNC_STATUS_LABEL: Record<ReturnType<typeof useOverallSyncStatus>['status'], string> = {
+  offline: "You're offline right now",
+  syncing: 'Syncing your work…',
+  error: 'Some items failed to sync',
+  synced: 'Everything is synced',
+};
+
+function OfflineToggleRow() {
+  useOfflineVersion();
+  const simulated = isSimulatedOffline();
+  const { status } = useOverallSyncStatus();
+
+  return (
+    <View style={[styles.row, styles.rowLast]}>
+      <View style={styles.rowIcon}>
+        <Ionicons name="cloud-offline-outline" size={18} color={colors.textSecondary} />
+      </View>
+      <View style={styles.rowLabelFlex}>
+        <Text variant="body">Simulate Offline Mode</Text>
+        <Text variant="footnote" color={colors.textTertiary}>
+          {simulated ? 'On — the app is acting as if there is no connection.' : SYNC_STATUS_LABEL[status]}
+        </Text>
+      </View>
+      <Switch
+        value={simulated}
+        onValueChange={setSimulatedOffline}
+        trackColor={{ false: colors.surfaceHighlight, true: colors.accent }}
+        thumbColor={colors.textPrimary}
+      />
+    </View>
   );
 }
 

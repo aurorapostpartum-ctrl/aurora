@@ -2,7 +2,9 @@ import { useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import { Stack } from 'expo-router';
+import { View } from 'react-native';
 
+import { OfflineBanner } from '../src/components/offline/OfflineBanner';
 import { AppProviders } from '../src/providers/AppProviders';
 import { useAuth } from '../src/providers/AuthProvider';
 import { colors } from '../src/theme';
@@ -13,7 +15,10 @@ export default function RootLayout() {
   return (
     <AppProviders>
       <StatusBar style="light" />
-      <RootNavigator />
+      <View style={{ flex: 1, backgroundColor: colors.background }}>
+        <OfflineBanner />
+        <RootNavigator />
+      </View>
     </AppProviders>
   );
 }
