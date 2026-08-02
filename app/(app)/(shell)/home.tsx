@@ -4,10 +4,20 @@ import { useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
-import { Card, Text } from '../../../src/components/ui';
+import { Card, EmptyState, Text } from '../../../src/components/ui';
 import { DEFICIENCIES, JOBS } from '../../../src/data/company';
-import { activityForJob, getJob, personName, timeAgo } from '../../../src/data/selectors';
-import { JobFolderGrid } from '../../../src/features/jobs/JobFolderGrid';
+import { useMockDataVersion } from '../../../src/data/mockStore';
+import {
+  activityForJob,
+  checklistsForJob,
+  documentsForJob,
+  getJob,
+  hazardAssessmentsForJob,
+  personName,
+  timeAgo,
+} from '../../../src/data/selectors';
+import { EmployeeJobCard } from '../../../src/features/jobs/EmployeeJobCard';
+import { pendingDocumentReviewCount, requirementsForJob } from '../../../src/features/jobs/jobRequirements';
 import { RoleGate } from '../../../src/navigation/RoleGate';
 import { useAuth } from '../../../src/providers/AuthProvider';
 import { colors, spacing } from '../../../src/theme';
@@ -22,8 +32,9 @@ export default function HomeScreen() {
 
 function HomeContent() {
   const { person } = useAuth();
+  const version = useMockDataVersion();
 
-  const myJobs = useMemo(() => (person ? JOBS.filter((j) => person.jobIds.includes(j.id)) : []), [person]);
+  const myJobs = useMemo(() => (person ? JOBS.filter((j) => person.jobIds.includes(j.id)) : []), [person, version]);
 
   const stats = useMemo(() => {
     const ids = new Set(myJobs.map((j) => j.id));
@@ -33,7 +44,24 @@ function HomeContent() {
     };
   }, [myJobs]);
 
-  const recentActivity = useMemo(() => myJobs.flatMap((j) => activityForJob(j.id)).slice(0, 5), [myJobs]);
+  const jobCards = useMemo(() => {
+    if (!person) return [];
+    return myJobs.map((job) => {
+      const documents = documentsForJob(job.id);
+      const checklists = checklistsForJob(job.id);
+      const hazards = hazardAssessmentsForJob(job.id);
+      const activity = activityForJob(job.id);
+      return {
+        job,
+        requirements: requirementsForJob(hazards, documents, checklists, person.id),
+        latestActivity: activity[0],
+        documentCount: documents.length,
+        pendingDocumentCount: pendingDocumentReviewCount(documents, person.id),
+      };
+    });
+  }, [myJobs, person, version]);
+
+  const recentActivity = useMemo(() => myJobs.flatMap((j) => activityForJob(j.id)).slice(0, 5), [myJobs, version]);
 
   if (!person) return null;
 
@@ -71,7 +99,32 @@ function HomeContent() {
         </Animated.View>
 
         <Animated.View entering={FadeInDown.duration(360).delay(100)} style={styles.section}>
-          <JobFolderGrid jobs={myJobs} heading="Your Job Folders" emptyMessage="No jobs assigned yet" />
+          <View style={styles.headerRow}>
+            <Text variant="title3" style={styles.myJobsTitle}>
+              MY JOBS
+            </Text>
+            <Text variant="footnote" color={colors.textTertiary}>
+              {myJobs.length} {myJobs.length === 1 ? 'job' : 'jobs'}
+            </Text>
+          </View>
+
+          {jobCards.length === 0 ? (
+            <EmptyState icon="folder-open-outline" title="No jobs assigned yet" />
+          ) : (
+            <View style={styles.jobGrid}>
+              {jobCards.map(({ job, requirements, latestActivity, documentCount, pendingDocumentCount }) => (
+                <EmployeeJobCard
+                  key={job.id}
+                  job={job}
+                  requirements={requirements}
+                  latestActivity={latestActivity}
+                  documentCount={documentCount}
+                  pendingDocumentCount={pendingDocumentCount}
+                  onPress={() => router.push(`/(app)/job/${job.id}`)}
+                />
+              ))}
+            </View>
+          )}
         </Animated.View>
 
         {recentActivity.length > 0 ? (
@@ -149,6 +202,20 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     marginBottom: spacing.sm,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    marginBottom: spacing.md,
+  },
+  myJobsTitle: {
+    letterSpacing: 1,
+  },
+  jobGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.md,
   },
   activityCard: {
     padding: spacing.xs,
