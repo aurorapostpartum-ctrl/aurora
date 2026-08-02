@@ -19,6 +19,7 @@ import {
 import { enqueueSync } from './offlineStore';
 import { demoNow, formatDate } from './selectors';
 import { createId } from '../lib/id';
+import { storage } from '../lib/storage';
 import type {
   ActivityType,
   AppNotification,
@@ -66,6 +67,7 @@ const listeners = new Set<() => void>();
 function emitChange() {
   version += 1;
   listeners.forEach((listener) => listener());
+  schedulePersist();
 }
 
 function subscribe(listener: () => void) {
@@ -79,6 +81,79 @@ function getSnapshot() {
 
 export function useMockDataVersion() {
   return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+}
+
+// --- Persistence ---
+// Every collection below is `export const X: T[] = [...]` in company.ts and
+// mutated in place (push/unshift/splice/index-assignment) rather than
+// reassigned, so every array reference held anywhere in the app stays valid
+// across a hydrate: we clear each array and push the persisted rows back in,
+// instead of replacing the binding. PEOPLE is deliberately excluded — it's
+// the read-only company roster and no mockStore function ever mutates it.
+const STORE_KEY = 'sitevault.mockStore.v1';
+
+const PERSISTED_COLLECTIONS = {
+  jobs: JOBS,
+  documents: DOCUMENTS,
+  checklistTemplates: CHECKLIST_TEMPLATES,
+  jobChecklists: JOB_CHECKLISTS,
+  hazardTemplates: HAZARD_TEMPLATES,
+  jobHazardAssessments: JOB_HAZARD_ASSESSMENTS,
+  photos: PHOTOS,
+  deficiencies: DEFICIENCIES,
+  notes: NOTES,
+  announcements: ANNOUNCEMENTS,
+  activity: ACTIVITY,
+  notifications: NOTIFICATIONS,
+  projectCompletions: PROJECT_COMPLETIONS,
+} as const;
+
+type PersistedCollectionKey = keyof typeof PERSISTED_COLLECTIONS;
+
+let persistTimer: ReturnType<typeof setTimeout> | null = null;
+
+// Debounced so a burst of writes (e.g. typing, or a multi-step wizard
+// submit) coalesces into a single storage write instead of one per field.
+function schedulePersist() {
+  if (persistTimer) clearTimeout(persistTimer);
+  persistTimer = setTimeout(() => {
+    persistTimer = null;
+    const snapshot: Partial<Record<PersistedCollectionKey, unknown>> = {};
+    for (const key of Object.keys(PERSISTED_COLLECTIONS) as PersistedCollectionKey[]) {
+      snapshot[key] = PERSISTED_COLLECTIONS[key];
+    }
+    storage.setItem(STORE_KEY, JSON.stringify(snapshot)).catch(() => {});
+  }, 250);
+}
+
+let hydrated = false;
+
+/**
+ * Loads persisted data over the seed defaults, if any exists. Must be
+ * awaited before the app renders any screen that reads these collections —
+ * otherwise a screen could flash seed data, or worse, 404 on a record that
+ * only exists in the persisted set. See app/_layout.tsx.
+ */
+export async function hydrateMockStore(): Promise<void> {
+  if (hydrated) return;
+  hydrated = true;
+  try {
+    const raw = await storage.getItem(STORE_KEY);
+    if (!raw) return;
+    const parsed = JSON.parse(raw) as Partial<Record<PersistedCollectionKey, unknown>>;
+    for (const key of Object.keys(PERSISTED_COLLECTIONS) as PersistedCollectionKey[]) {
+      const value = parsed[key];
+      if (!Array.isArray(value)) continue;
+      const target = PERSISTED_COLLECTIONS[key] as unknown[];
+      target.length = 0;
+      target.push(...value);
+    }
+  } catch {
+    // Corrupt or incompatible persisted data — fall back to seed defaults
+    // rather than leaving the app in a half-loaded state.
+  }
+  version += 1;
+  listeners.forEach((listener) => listener());
 }
 
 // --- Notifications ---

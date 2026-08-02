@@ -1,10 +1,11 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import { Stack } from 'expo-router';
 import { View } from 'react-native';
 
 import { OfflineBanner } from '../src/components/offline/OfflineBanner';
+import { hydrateMockStore } from '../src/data/mockStore';
 import { AppProviders } from '../src/providers/AppProviders';
 import { useAuth } from '../src/providers/AuthProvider';
 import { colors } from '../src/theme';
@@ -25,14 +26,19 @@ export default function RootLayout() {
 
 function RootNavigator() {
   const { status } = useAuth();
+  const [dataReady, setDataReady] = useState(false);
 
   useEffect(() => {
-    if (status !== 'loading') {
+    hydrateMockStore().finally(() => setDataReady(true));
+  }, []);
+
+  useEffect(() => {
+    if (status !== 'loading' && dataReady) {
       SplashScreen.hideAsync().catch(() => {});
     }
-  }, [status]);
+  }, [status, dataReady]);
 
-  if (status === 'loading') {
+  if (status === 'loading' || !dataReady) {
     return null;
   }
 
