@@ -49,7 +49,7 @@ export function JobFolderCard({ job, onPress }: JobFolderCardProps) {
           <View style={styles.body}>
             <View style={styles.headerRow}>
               <Ionicons name="folder" size={16} color={job.tabColor} style={styles.folderIcon} />
-              <Text variant="caption1" color={colors.inkTertiary} style={styles.eyebrow}>
+              <Text variant="monoLabel" color={colors.inkTertiary} style={styles.eyebrow}>
                 JOB FOLDER
               </Text>
             </View>

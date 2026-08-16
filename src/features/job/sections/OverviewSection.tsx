@@ -88,7 +88,7 @@ export function OverviewSection({
         </Pressable>
       ) : null}
 
-      <Text variant="caption1" color={colors.textTertiary} style={styles.gridLabel}>
+      <Text variant="monoLabel" color={colors.textTertiary} style={styles.gridLabel}>
         JOB FOLDER
       </Text>
       <View style={styles.grid}>

@@ -149,7 +149,7 @@ function ChecklistRecordContent() {
 
             <View style={styles.letterheadMetaRow}>
               <View>
-                <Text variant="caption2" color={colors.inkTertiary}>
+                <Text variant="monoLabel" color={colors.inkTertiary}>
                   JOB
                 </Text>
                 <Text variant="subhead" color={colors.ink}>
@@ -157,7 +157,7 @@ function ChecklistRecordContent() {
                 </Text>
               </View>
               <View>
-                <Text variant="caption2" color={colors.inkTertiary}>
+                <Text variant="monoLabel" color={colors.inkTertiary}>
                   EMPLOYEE
                 </Text>
                 <Text variant="subhead" color={colors.ink}>
@@ -165,7 +165,7 @@ function ChecklistRecordContent() {
                 </Text>
               </View>
               <View>
-                <Text variant="caption2" color={colors.inkTertiary}>
+                <Text variant="monoLabel" color={colors.inkTertiary}>
                   TRADE
                 </Text>
                 <Text variant="subhead" color={colors.ink}>

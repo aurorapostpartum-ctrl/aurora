@@ -3,6 +3,17 @@ import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import { Stack } from 'expo-router';
 import { View } from 'react-native';
+import {
+  useFonts,
+  BigShouldersDisplay_700Bold,
+  BigShouldersDisplay_800ExtraBold,
+} from '@expo-google-fonts/big-shoulders-display';
+import {
+  IBMPlexSans_400Regular,
+  IBMPlexSans_500Medium,
+  IBMPlexSans_600SemiBold,
+} from '@expo-google-fonts/ibm-plex-sans';
+import { IBMPlexMono_400Regular, IBMPlexMono_500Medium } from '@expo-google-fonts/ibm-plex-mono';
 
 import { OfflineBanner } from '../src/components/offline/OfflineBanner';
 import { hydrateMockStore } from '../src/data/mockStore';
@@ -27,18 +38,27 @@ export default function RootLayout() {
 function RootNavigator() {
   const { status } = useAuth();
   const [dataReady, setDataReady] = useState(false);
+  const [fontsLoaded] = useFonts({
+    BigShouldersDisplay_700Bold,
+    BigShouldersDisplay_800ExtraBold,
+    IBMPlexSans_400Regular,
+    IBMPlexSans_500Medium,
+    IBMPlexSans_600SemiBold,
+    IBMPlexMono_400Regular,
+    IBMPlexMono_500Medium,
+  });
 
   useEffect(() => {
     hydrateMockStore().finally(() => setDataReady(true));
   }, []);
 
   useEffect(() => {
-    if (status !== 'loading' && dataReady) {
+    if (status !== 'loading' && dataReady && fontsLoaded) {
       SplashScreen.hideAsync().catch(() => {});
     }
-  }, [status, dataReady]);
+  }, [status, dataReady, fontsLoaded]);
 
-  if (status === 'loading' || !dataReady) {
+  if (status === 'loading' || !dataReady || !fontsLoaded) {
     return null;
   }
 

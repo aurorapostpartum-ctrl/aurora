@@ -159,7 +159,7 @@ export default function JobDetailScreen() {
           <View style={styles.folderCard}>
             <View style={styles.folderTopRow}>
               <Ionicons name="folder" size={18} color={job.tabColor} />
-              <Text variant="caption1" color={colors.inkTertiary} style={styles.folderEyebrow}>
+              <Text variant="monoLabel" color={colors.inkTertiary} style={styles.folderEyebrow}>
                 JOB FOLDER
               </Text>
             </View>
