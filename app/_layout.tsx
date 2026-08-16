@@ -1,8 +1,22 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import { Stack } from 'expo-router';
+import { View } from 'react-native';
+import {
+  useFonts,
+  BigShouldersDisplay_700Bold,
+  BigShouldersDisplay_800ExtraBold,
+} from '@expo-google-fonts/big-shoulders-display';
+import {
+  IBMPlexSans_400Regular,
+  IBMPlexSans_500Medium,
+  IBMPlexSans_600SemiBold,
+} from '@expo-google-fonts/ibm-plex-sans';
+import { IBMPlexMono_400Regular, IBMPlexMono_500Medium } from '@expo-google-fonts/ibm-plex-mono';
 
+import { OfflineBanner } from '../src/components/offline/OfflineBanner';
+import { hydrateMockStore } from '../src/data/mockStore';
 import { AppProviders } from '../src/providers/AppProviders';
 import { useAuth } from '../src/providers/AuthProvider';
 import { colors } from '../src/theme';
@@ -13,21 +27,38 @@ export default function RootLayout() {
   return (
     <AppProviders>
       <StatusBar style="light" />
-      <RootNavigator />
+      <View style={{ flex: 1, backgroundColor: colors.background }}>
+        <OfflineBanner />
+        <RootNavigator />
+      </View>
     </AppProviders>
   );
 }
 
 function RootNavigator() {
-  const { status, needsOnboarding } = useAuth();
+  const { status } = useAuth();
+  const [dataReady, setDataReady] = useState(false);
+  const [fontsLoaded] = useFonts({
+    BigShouldersDisplay_700Bold,
+    BigShouldersDisplay_800ExtraBold,
+    IBMPlexSans_400Regular,
+    IBMPlexSans_500Medium,
+    IBMPlexSans_600SemiBold,
+    IBMPlexMono_400Regular,
+    IBMPlexMono_500Medium,
+  });
 
   useEffect(() => {
-    if (status !== 'loading') {
+    hydrateMockStore().finally(() => setDataReady(true));
+  }, []);
+
+  useEffect(() => {
+    if (status !== 'loading' && dataReady && fontsLoaded) {
       SplashScreen.hideAsync().catch(() => {});
     }
-  }, [status]);
+  }, [status, dataReady, fontsLoaded]);
 
-  if (status === 'loading') {
+  if (status === 'loading' || !dataReady || !fontsLoaded) {
     return null;
   }
 
@@ -42,10 +73,7 @@ function RootNavigator() {
       <Stack.Protected guard={status === 'signedOut'}>
         <Stack.Screen name="(auth)" />
       </Stack.Protected>
-      <Stack.Protected guard={status === 'signedIn' && needsOnboarding}>
-        <Stack.Screen name="(onboarding)" />
-      </Stack.Protected>
-      <Stack.Protected guard={status === 'signedIn' && !needsOnboarding}>
+      <Stack.Protected guard={status === 'signedIn'}>
         <Stack.Screen name="(app)" />
       </Stack.Protected>
       <Stack.Screen name="+not-found" />

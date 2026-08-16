@@ -24,7 +24,7 @@ export function Screen({
       {glow ? (
         <View pointerEvents="none" style={styles.glowWrap}>
           <LinearGradient
-            colors={['rgba(47,128,255,0.16)', 'rgba(47,128,255,0)']}
+            colors={['rgba(47,111,237,0.16)', 'rgba(47,111,237,0)']}
             style={styles.glow}
             start={{ x: 0.5, y: 0 }}
             end={{ x: 0.5, y: 1 }}

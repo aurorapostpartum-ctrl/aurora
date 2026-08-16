@@ -1,89 +1,115 @@
-import { Platform } from 'react-native';
+// Display tier (largeTitle/title1/title2/title3) uses Big Shoulders Display —
+// a bold condensed industrial gothic in the Chicago-signage lineage — for
+// headlines and section titles. Everything read or scanned (headline down
+// through caption2) uses IBM Plex Sans, an engineered, documentation-grade
+// humanist sans. `mono` is IBM Plex Mono, for job codes, revision stamps,
+// and timestamps — the "stamped" details throughout the app. Weight lives in
+// the specific font file loaded (see app/_layout.tsx), not in `fontWeight`,
+// since RN can't reliably synthesize weight on top of a custom static font.
 
-const fontFamily = Platform.select({
-  ios: 'System',
-  android: 'sans-serif',
-  default: 'System',
-});
+const display = 'BigShouldersDisplay_800ExtraBold';
+const displayBold = 'BigShouldersDisplay_700Bold';
+const sans = 'IBMPlexSans_400Regular';
+const sansMedium = 'IBMPlexSans_500Medium';
+const sansSemiBold = 'IBMPlexSans_600SemiBold';
+const mono = 'IBMPlexMono_400Regular';
+const monoMedium = 'IBMPlexMono_500Medium';
 
 export const typography = {
-  fontFamily,
+  fontFamily: sans,
   largeTitle: {
-    fontFamily,
+    fontFamily: display,
     fontSize: 34,
-    lineHeight: 41,
-    fontWeight: '700' as const,
-    letterSpacing: 0.37,
+    lineHeight: 38,
+    fontWeight: '400' as const,
+    letterSpacing: 0.1,
   },
   title1: {
-    fontFamily,
+    fontFamily: display,
     fontSize: 28,
-    lineHeight: 34,
-    fontWeight: '700' as const,
-    letterSpacing: 0.36,
+    lineHeight: 32,
+    fontWeight: '400' as const,
+    letterSpacing: 0.1,
   },
   title2: {
-    fontFamily,
+    fontFamily: displayBold,
     fontSize: 22,
-    lineHeight: 28,
-    fontWeight: '700' as const,
-    letterSpacing: 0.35,
+    lineHeight: 25,
+    fontWeight: '400' as const,
+    letterSpacing: 0.1,
   },
   title3: {
-    fontFamily,
+    fontFamily: displayBold,
     fontSize: 20,
-    lineHeight: 25,
-    fontWeight: '600' as const,
-    letterSpacing: 0.38,
+    lineHeight: 23,
+    fontWeight: '400' as const,
+    letterSpacing: 0.1,
   },
   headline: {
-    fontFamily,
+    fontFamily: sansSemiBold,
     fontSize: 17,
     lineHeight: 22,
-    fontWeight: '600' as const,
-    letterSpacing: -0.41,
+    fontWeight: '400' as const,
+    letterSpacing: -0.1,
   },
   body: {
-    fontFamily,
+    fontFamily: sans,
     fontSize: 17,
     lineHeight: 24,
     fontWeight: '400' as const,
-    letterSpacing: -0.41,
+    letterSpacing: 0,
   },
   callout: {
-    fontFamily,
+    fontFamily: sans,
     fontSize: 16,
     lineHeight: 21,
     fontWeight: '400' as const,
-    letterSpacing: -0.32,
+    letterSpacing: 0,
   },
   subhead: {
-    fontFamily,
+    fontFamily: sans,
     fontSize: 15,
     lineHeight: 20,
     fontWeight: '400' as const,
-    letterSpacing: -0.24,
+    letterSpacing: 0,
   },
   footnote: {
-    fontFamily,
+    fontFamily: sans,
     fontSize: 13,
     lineHeight: 18,
     fontWeight: '400' as const,
-    letterSpacing: -0.08,
-  },
-  caption1: {
-    fontFamily,
-    fontSize: 12,
-    lineHeight: 16,
-    fontWeight: '500' as const,
     letterSpacing: 0,
   },
+  caption1: {
+    fontFamily: sansMedium,
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '400' as const,
+    letterSpacing: 0.02,
+  },
   caption2: {
-    fontFamily,
+    fontFamily: sansSemiBold,
     fontSize: 11,
     lineHeight: 13,
-    fontWeight: '600' as const,
-    letterSpacing: 0.07,
+    fontWeight: '400' as const,
+    letterSpacing: 0.08,
+  },
+  // Data tier — job numbers, revision stamps, timestamps, codes. Not part of
+  // the reading hierarchy above; used selectively where content is genuinely
+  // "stamped" data rather than prose.
+  mono: {
+    fontFamily: mono,
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '400' as const,
+    letterSpacing: 0.02,
+  },
+  monoLabel: {
+    fontFamily: monoMedium,
+    fontSize: 11,
+    lineHeight: 14,
+    fontWeight: '400' as const,
+    letterSpacing: 0.1,
   },
 } as const;
 

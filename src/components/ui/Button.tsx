@@ -176,7 +176,7 @@ const variantStyles: Record<
     container: {
       backgroundColor: colors.dangerMuted,
       borderWidth: StyleSheet.hairlineWidth,
-      borderColor: 'rgba(255,69,58,0.35)',
+      borderColor: 'rgba(239,68,68,0.35)',
     },
     textColor: colors.danger,
   },

@@ -55,9 +55,11 @@ export const TextField = forwardRef<TextInput, TextFieldProps>(
 
     return (
       <View style={styles.wrapper}>
-        <Text variant="footnote" color={colors.textSecondary} style={styles.label}>
-          {label}
-        </Text>
+        {label ? (
+          <Text variant="footnote" color={colors.textSecondary} style={styles.label}>
+            {label}
+          </Text>
+        ) : null}
         <Animated.View
           style={[
             styles.inputContainer,

@@ -55,7 +55,7 @@ const styles = StyleSheet.create({
     borderRadius: 32,
     backgroundColor: colors.dangerMuted,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,69,58,0.3)',
+    borderColor: 'rgba(239,68,68,0.3)',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.md,
